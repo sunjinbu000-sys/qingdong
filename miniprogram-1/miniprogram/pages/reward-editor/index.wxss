@@ -1,0 +1,1 @@
+input,textarea{background:#f4f7f4;margin:14rpx 0;padding:18rpx}textarea{width:90%;min-height:160rpx}image{width:240rpx;height:160rpx;margin:12rpx}.row{display:flex;flex-wrap:wrap;gap:10rpx}.muted{font-size:24rpx;color:#738076}

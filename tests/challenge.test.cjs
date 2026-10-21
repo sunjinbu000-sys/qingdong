@@ -10,7 +10,10 @@ test("daily check-in and enrollment are idempotent across domain recreation", ()
   d.checkIn();
   f.make().checkIn();
   assert.equal(f.store.read().enrollments.length, 1);
-  assert.equal(f.store.read().checkins.length, 1);
+  assert.equal(
+    f.store.read().checkins.filter((c) => c.userId === "demo-user").length,
+    1,
+  );
   assert.equal(d.getActivity("first-step").progress, 1);
 });
 test("progress counts enrollment day onwards and distinct days only", () => {

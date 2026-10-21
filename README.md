@@ -1,51 +1,26 @@
-# 轻动 · 区域健康挑战
+# 轻动 · 微信小程序
 
-按 V0.30 原型开发的微信原生小程序一期用户端。当前使用本机模拟数据，不依赖云开发环境或后端接口。
+依据《轻动演示-V0.30.html》实现的微信原生小程序，覆盖 33 个原型模块、58 个页面。后端开发期间使用持久化本地模拟数据。
 
 ## 运行
 
-1. 开发者工具打开 **E:/qingdong/miniprogram-1**，不要打开其内部 miniprogram 子目录。
-2. 保留已有 AppID，点击「编译」。无需部署云函数或构建 npm。
-3. 首页选择城市或进入「我的」，使用模拟账号，填写昵称并确认城市。
-4. 「挑战」报名一天目标活动 → 回首页签到 → 返回详情领奖 → 查看会员权益。
-5. 日记中记录饮食、运动、体重；拍照记餐选择照片体验固定模拟样例。
+1. 微信开发者工具打开 **E:/qingdong/miniprogram-1**，保留已有 AppID，点击“编译”。无需构建 npm 或部署云函数。
+2. 登录模拟账号，填写昵称并确认城市。首页可直接进入社区、小队、体重、AI、活动、邀请和徽章。
+3. 点击首页“全部功能”查看完整目录；其中“切换身份”可体验运营、总部、审核员和监督员流程。
+4. 若要重新体验首次登录，在隐私页重置演示数据。此操作清除本机演示记录。
 
-首次登录赠送一次 3 天体验卡，每日 3 次模拟识餐；活动奖励接在已有权益后生效。识餐不分析图片、不上传照片。所有权益和榜单均为演示数据。
+## 对照与验证
 
-## 页面与源码
+- [33 个原型模块对照](docs/prototype-coverage.md)
+- [验收流程和验证边界](docs/miniprogram-acceptance.md)
+- [服务接口与后端接入](docs/miniprogram-api.md)
+- [部分页面预览](docs/previews/full-prototype.png)（编译后的页面结构在浏览器中排版检查）
 
-- 首页：签到、今日摘要、拍照记餐、活动推荐。
-- 健康日记：按日期查看、新增和删除饮食／运动／体重记录。
-- 挑战：活动详情、报名、累计进度、奖励领取、打卡榜。
-- 我的：档案、会员权益、奖励流水、隐私与数据重置。
-
-源码位于 miniprogram-1/miniprogram/。原 cloudfunctions、pages/example 和云开发素材保留，但不在业务入口注册，不会启动云开发。
-
-## 验证
-
-需要 Node.js 20 或更新版本，本机使用 24.19.0。
+运行自动检查：
 
 ```powershell
 node --test tests/*.test.cjs
 node scripts/check-miniprogram.cjs
 ```
 
-本机 PowerShell 若没有 Node PATH，可使用 Codex 自带 Node：
-
-```powershell
-& "C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe" --test tests/*.test.cjs
-```
-
-可选的微信独立编译器检查：
-
-```powershell
-node scripts/check-miniprogram.cjs --wechat-compiler "E:/Program Files (x86)/Tencent/微信web开发者工具/resources/app.asar.unpacked/node_modules/wcc-exec"
-```
-
-见 [验收记录](docs/miniprogram-acceptance.md) 和 [接口说明](docs/miniprogram-api.md)。
-
-## 后续对接
-
-页面仅通过 services/index.js 调用业务服务。配置默认为 mock；真实网络适配尚未实现，其他模式明确报错，不能只改 URL 就接生产。
-
-一期不包含真实微信登录、手机号、支付、广告、小队、体重榜结算、论坛或运营后台。接口就绪后逐批替换模拟服务，签到、奖励、会员和额度以服务端结果为准。
+当前 AI、识餐、支付、广告、奖励和审核全部为本地模拟，不发生真实扣款或发奖。微信登录、服务端 API、真实 AI、支付、广告和订阅消息需要后续联调。原 cloudfunctions 和未注册的 example 页面保留。

@@ -6,6 +6,9 @@ page({
       const snapshot = await service.getSnapshot();
       this.setData({
         snapshot,
+        stats: snapshot.signedIn
+          ? await service.getProfileSummary()
+          : { streak: 0, meals: 0, badges: 0 },
         initial: snapshot.profile.nickname.slice(0, 1),
       });
     });

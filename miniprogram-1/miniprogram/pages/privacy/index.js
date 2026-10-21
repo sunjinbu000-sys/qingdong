@@ -13,6 +13,15 @@ page({
       });
     });
   },
+  toggleLoss(e) {
+    this.action(async () => {
+      try {
+        await service.savePrivacy({ lossRank: e.detail.value });
+      } finally {
+        await this.refresh();
+      }
+    });
+  },
   toggleRank(e) {
     this.action(async () => {
       try {

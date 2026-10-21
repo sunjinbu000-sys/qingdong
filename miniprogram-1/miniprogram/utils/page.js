@@ -67,14 +67,45 @@ function page(options) {
         }
         return true;
       },
-      onShow() {
-        if (this.refresh) this.refresh();
+      async onShow() {
+        if (this.refresh) await this.refresh();
+        const pages = getCurrentPages(),
+          current = pages[pages.length - 1];
+        const slots = {
+          "pages/index/index": "homeBanner",
+          "pages/health/index": "healthBanner",
+          "pages/profile/index": "profileBanner",
+        };
+        const key = current && slots[current.route];
+        if (key) {
+          try {
+            const placement = await service.getAdPlacement(key);
+            this.setData({ adPlacement: placement.enabled ? placement : null });
+            if (key === "homeBanner" && !this._interstitialShown) {
+              const interstitial =
+                await service.getAdPlacement("homeInterstitial");
+              if (interstitial.enabled) {
+                this._interstitialShown = true;
+                wx.showModal({
+                  title: "模拟插屏广告",
+                  content:
+                    "已配置首页插屏广告位 " +
+                    interstitial.unitId +
+                    "。本次仅展示本地模拟，不加载真实广告。",
+                  showCancel: false,
+                });
+              }
+            }
+          } catch (_) {
+            this.setData({ adPlacement: null });
+          }
+        }
       },
     },
     options,
   );
   definition.data = Object.assign(
-    { loading: true, error: "", busy: false },
+    { loading: true, error: "", busy: false, statusLabels: { approved:'已通过',pending:'待审核',rejected:'未通过',appealed:'申诉中',draft:'草稿',withdrawn:'已撤回',deleted:'已删除',published:'已发布',cancelled:'已取消',paid:'已支付',refund_pending:'退款待审核',refunded:'已退款' } },
     options.data,
   );
   Page(definition);

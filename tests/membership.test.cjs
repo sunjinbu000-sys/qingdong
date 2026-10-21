@@ -23,6 +23,11 @@ test("quota resets at Beijing midnight and grant expiry stops recognition", () =
   assert.equal(d.getMembership().remaining, 3);
   f.setTime("2026-10-23T16:00:00Z");
   assert.equal(d.getMembership().remaining, 0);
+  for (let i = 0; i < 3; i++)
+    d.recognizeMeal({
+      imagePath: "wxfile://saved/a.jpg",
+      requestId: "free-expiry-" + i,
+    });
   assert.throws(
     () =>
       d.recognizeMeal({ imagePath: "wxfile://saved/a.jpg", requestId: "2" }),
@@ -55,6 +60,11 @@ test("exhausted quota stops new requests and reward grant queues after existing 
       imagePath: "wxfile://saved/a.jpg",
       requestId: String(i),
     });
+  for (let i = 0; i < 3; i++)
+    d.recognizeMeal({
+      imagePath: "wxfile://saved/a.jpg",
+      requestId: "free-exhausted-" + i,
+    });
   assert.throws(
     () =>
       d.recognizeMeal({ imagePath: "wxfile://saved/a.jpg", requestId: "4" }),
@@ -81,4 +91,35 @@ test("meal slot uses Beijing time and deleting a meal does not refund consumed q
   assert.equal(r.slot, "snack");
   d.deleteRecord(r.recordId);
   assert.equal(d.getMembership().used, 1);
+});
+test("non-ad-free membership requires a permanent credit as in the prototype", () => {
+  const f = setup(),
+    d = f.domain;
+  f.login();
+  d.setDemoRole("hq");
+  const config = d.getAIConfig();
+  d.saveAIConfig(config.config);
+  d.setDemoRole("consumer");
+  let s = f.store.read();
+  s.grants[0].features = ["photo"];
+  s.full.ai.freeCredits = 0;
+  s.full.ads.credits = 0;
+  f.store.write(s);
+  assert.throws(
+    () =>
+      d.recognizeMeal({
+        imagePath: "wxfile://saved/a.jpg",
+        requestId: "no-credit",
+      }),
+    /次数|额度/,
+  );
+  s = f.store.read();
+  s.full.ai.freeCredits = 1;
+  f.store.write(s);
+  d.recognizeMeal({
+    imagePath: "wxfile://saved/a.jpg",
+    requestId: "with-credit",
+  });
+  assert.equal(d.getMembership().used, 1);
+  assert.equal(f.store.read().full.ai.freeCredits, 0);
 });

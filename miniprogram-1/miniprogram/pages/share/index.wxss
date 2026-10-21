@@ -1,0 +1,1 @@
+.poster-canvas{position:absolute;left:-2000px;top:0;pointer-events:none}.poster-image{display:block;width:100%;border-radius:18rpx;margin-top:24rpx}

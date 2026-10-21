@@ -16,6 +16,8 @@ global.wx = {
   navigateBack: () => {},
   switchTab: () => {},
   navigateTo: () => {},
+  setNavigationBarTitle: () => {},
+  getSystemInfoSync: () => ({ platform: "android", windowWidth: 390 }),
 };
 global.getCurrentPages = () => [{}];
 function loadPage(name) {
@@ -31,7 +33,7 @@ function loadPage(name) {
   });
   page.setData = (updates) => {
     for (const [key, value] of Object.entries(updates)) {
-      const parts = key.split(".");
+      const parts = key.replace(/\[(\d+)\]/g, ".$1").split(".");
       let target = page.data;
       while (parts.length > 1) {
         const part = parts.shift();
@@ -46,21 +48,31 @@ function loadPage(name) {
 test("every registered page loads both signed out and signed in, with event handlers present", async () => {
   const app = JSON.parse(fs.readFileSync(path.join(root, "app.json"), "utf8"));
   const service = require("../miniprogram-1/miniprogram/services/index");
-  for (const loggedIn of [false, true]) {
+  for (const mode of ["guest", "consumer", "hq", "reviewer"]) {
+    const loggedIn = mode !== "guest";
     if (loggedIn) {
       await service.loginDemo();
       await service.saveProfile({ nickname: "测试伙伴", city: "温州" });
+      await service.setDemoRole(mode);
     }
     for (const route of app.pages) {
       const name = route.split("/")[1],
         p = loadPage(name);
-      if (p.onLoad) p.onLoad({ id: "first-step", type: "meal" });
+      if (p.onLoad)
+        await p.onLoad(
+          name === "activity"
+            ? { id: "first-step" }
+            : name === "records"
+              ? { type: "meal" }
+              : {},
+        );
       await p.refresh();
-      assert.equal(
-        p.data.error,
-        "",
-        name + " must load in " + loggedIn + " state",
-      );
+      if (p.data.error)
+        assert.match(
+          p.data.error,
+          /登录|权限|身份|城市/,
+          name + " unexpected error in " + mode + ": " + p.data.error,
+        );
       assert.equal(p.data.loading, false, name + " must settle loading");
       const wxml = fs.readFileSync(path.join(root, route + ".wxml"), "utf8");
       for (const [, handler] of wxml.matchAll(

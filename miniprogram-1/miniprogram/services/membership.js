@@ -5,13 +5,18 @@ function membershipView(state, date) {
         .filter((g) => g.userId === userId)
         .map((g) =>
           Object.assign({}, g, {
-            status:
-              date < g.start ? "待生效" : date >= g.end ? "已到期" : "生效中",
+            status: g.revoked
+              ? "已撤回"
+              : date < g.start
+                ? "待生效"
+                : date >= g.end
+                  ? "已到期"
+                  : "生效中",
           }),
         )
     : [];
   const activeGrant =
-    timeline.find((g) => g.start <= date && g.end > date) || null;
+    timeline.find((g) => !g.revoked && g.start <= date && g.end > date) || null;
   const used = activeGrant
     ? state.recognitions.filter(
         (r) =>

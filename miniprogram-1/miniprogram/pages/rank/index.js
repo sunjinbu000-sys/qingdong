@@ -1,9 +1,13 @@
-const { page, service } = require("../../utils/page");
+const { page, service, navigate } = require("../../utils/page");
 page({
-  data: { rank: { rows: [] } },
+  data: { query: {} },
   refresh() {
-    return this.loadData(async () => {
-      this.setData({ rank: await service.getRank() });
-    });
+    return this.loadData(async () =>
+      this.setData({ rank: await service.getFullRank(this.data.query) }),
+    );
+  },
+  filter(e) {
+    this.setData({ query: e.detail.value });
+    return this.refresh();
   },
 });

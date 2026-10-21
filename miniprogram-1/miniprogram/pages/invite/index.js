@@ -1,0 +1,123 @@
+const qrcode = require("../../services/reference/qrcode");
+const { page, service, navigate } = require("../../utils/page");
+page({
+  data: {
+    invite: { records: [], tiers: [], claims: [] },
+    poster: "",
+    activities: [],
+    rewards: [],
+    role: "consumer",
+  },
+  refresh() {
+    return this.loadData(async () => {
+      if (!(await this.requireAccount())) return;
+      const activities = (await service.getRewardTasks()).filter(
+        (a) => a.type === "invite",
+      );
+      const ids = activities.map((a) => a.id);
+      const rewards = (await service.getMyFullRewards()).filter(
+        (r) => ids.includes(r.activityId) || r.type === "invite",
+      );
+      this.setData({
+        invite: await service.getInvites(),
+        activities,
+        rewards,
+        role: (await service.getSnapshot()).role,
+      });
+    });
+  },
+  copy() {
+    wx.setClipboardData({
+      data:
+        this.data.invite.link +
+        "\n邀请码 " +
+        this.data.invite.code +
+        "（本地演示路径，需同一模拟数据）",
+    });
+  },
+  preview() {
+    navigate(this.data.invite.link);
+  },
+  claim(e) {
+    return this.action(async () => {
+      await service.claimTaskReward({
+        activityId: e.currentTarget.dataset.activity,
+        tierId: e.currentTarget.dataset.tier,
+        requestId:
+          "invite-claim-" +
+          Date.now() +
+          "-" +
+          Math.random().toString(36).slice(2, 7),
+      });
+      await this.refresh();
+      wx.showToast({ title: "模拟奖励已到账", icon: "success" });
+    });
+  },
+  poster() {
+    this.action(async () => {
+      const c = wx.createCanvasContext("invitePoster", this);
+      const qr = qrcode(0, "M");
+      qr.addData(this.data.invite.link, "Byte");
+      qr.make();
+      c.setFillStyle("#eff4e7");
+      c.fillRect(0, 0, 300, 560);
+      c.setFillStyle("#173f34");
+      c.fillRect(0, 0, 300, 82);
+      c.setFillStyle("#e2efbf");
+      c.setFontSize(20);
+      c.fillText("轻动 · 一起养成好习惯", 20, 49);
+      c.setFillStyle("#173f34");
+      c.setFontSize(19);
+      c.fillText("邀请你认真记录每一天", 25, 121);
+      c.setFontSize(13);
+      c.fillText("饮食 · 运动 · 每一个小小坚持", 25, 146);
+      const count = qr.getModuleCount(),
+        scale = Math.max(1, Math.floor(224 / (count + 8))),
+        size = (count + 8) * scale,
+        left = Math.floor((300 - size) / 2),
+        top = 170;
+      c.setFillStyle("#fff");
+      c.fillRect(left, top, size, size);
+      c.setFillStyle("#10251c");
+      for (let row = 0; row < count; row++)
+        for (let col = 0; col < count; col++)
+          if (qr.isDark(row, col))
+            c.fillRect(
+              left + (col + 4) * scale,
+              top + (row + 4) * scale,
+              scale,
+              scale,
+            );
+      c.setFontSize(13);
+      c.fillText("本地模拟邀请路径二维码", 25, 410);
+      c.fillText("邀请码", 25, 434);
+      c.setFontSize(12);
+      const chunks = this.data.invite.code.match(/.{1,28}/g) || [];
+      chunks.forEach((line, i) => c.fillText(line, 25, 455 + i * 17));
+      c.setFontSize(11);
+      c.fillText("仅编码本地邀请路径，需同一模拟数据。", 25, 518);
+      c.fillText("不是微信小程序码，未连接线上注册服务。", 25, 538);
+      await new Promise((r) => c.draw(false, r));
+      const result = await new Promise((resolve, reject) =>
+        wx.canvasToTempFilePath(
+          {
+            canvasId: "invitePoster",
+            destWidth: 600,
+            destHeight: 1120,
+            success: resolve,
+            fail: reject,
+          },
+          this,
+        ),
+      );
+      this.setData({ poster: result.tempFilePath });
+      wx.previewImage({
+        urls: [result.tempFilePath],
+        current: result.tempFilePath,
+      });
+    });
+  },
+  onShareAppMessage() {
+    return { title: "和我一起，把健康记下来", path: this.data.invite.link };
+  },
+});

@@ -1,0 +1,1 @@
+.field{padding:20rpx 0}.field input,.field textarea{background:#f2f5ed;padding:20rpx;border-radius:12rpx}.item{padding:24rpx 0;border-bottom:1rpx solid #eee}.actions{display:flex;flex-wrap:wrap;gap:12rpx}.field textarea{width:90%}
