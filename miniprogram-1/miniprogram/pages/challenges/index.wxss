@@ -1,1 +1,1 @@
-
+.challenge-decoration{width:135rpx;height:135rpx;background:#d4ed9c;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:24rpx;transform:rotate(10deg)}.challenge-decoration image{width:77rpx;height:77rpx}.hero.dark .small-text{color:#b4c6ac;font-size:20rpx}.reward-line{display:flex;align-items:center;gap:10rpx;color:#8c794b;font-size:20rpx;padding-top:24rpx;margin-top:24rpx;border-top:1rpx solid #edf0e8}.reward-line text:first-of-type{flex:1}.challenge-card .title{font-size:29rpx}

@@ -1,1 +1,2 @@
-const { page } = require('../../utils/page'); page({ refresh() { this.setData({loading:false}); } });
+const {page,service}=require('../../utils/page');
+page({data:{activities:[],shown:[],filter:'all'},refresh(){return this.loadData(async()=>{this.setData({activities:await service.listActivities()});this.applyFilter();});},filterChange(e){this.setData({filter:e.currentTarget.dataset.filter});this.applyFilter();},applyFilter(){const f=this.data.filter;this.setData({shown:this.data.activities.filter(a=>f==='all'||f==='mine'&&a.enrolled||f==='reward'&&a.canClaim)});}});

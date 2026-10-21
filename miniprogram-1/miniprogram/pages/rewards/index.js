@@ -1,0 +1,1 @@
+const {page,service}=require('../../utils/page');page({data:{signedIn:false,tab:'available',rewards:{available:[],claims:[]}},refresh(){return this.loadData(async()=>{const s=await service.getSnapshot();this.setData({signedIn:s.signedIn,rewards:s.signedIn?await service.getRewards():{available:[],claims:[]}});});},selectTab(e){this.setData({tab:e.currentTarget.dataset.tab});}});

@@ -5,7 +5,10 @@
     "pages/challenges/index",
     "pages/profile/index",
     "pages/account/index",
-    "pages/records/index"
+    "pages/records/index",
+    "pages/activity/index",
+    "pages/rank/index",
+    "pages/rewards/index"
   ],
   "window": {
     "navigationBarTitleText": "轻动",

@@ -1,5 +1,6 @@
 const { bizDate, shiftDate, validDate } = require('../utils/date');
 const { createSeed } = require('./seed');
+const { activityView, reserveQualified } = require('./challenges');
 const CITIES = ['温州', '杭州', '宁波', '上海', '北京', '广州', '深圳', '成都'];
 const SLOTS = ['breakfast', 'lunch', 'dinner', 'snack'];
 function requireLogin(state) {
@@ -44,7 +45,60 @@ function createDomain({ store, now = Date.now }) {
     if (!validDate(date) || date > today() || date < '2000-01-01') throw new Error('请选择 2000 年至今天之间的有效日期');
     return date;
   }
+  function activity(s, activityId) {
+    const result = s.activities.find(a => a.id === activityId);
+    if (!result) throw new Error('没有找到这个挑战，请返回活动列表');
+    return result;
+  }
   return {
+    listActivities() { const s = read(); return s.activities.map(a => activityView(s, a, today())); },
+    getActivity(activityId) { const s = read(); return activityView(s, activity(s, activityId), today()); },
+    enroll(activityId) {
+      return change(s => {
+        const userId = requireCity(s); const a = activity(s, activityId);
+        if (today() < a.start) throw new Error('活动还未开始');
+        if (today() > a.end) throw new Error('活动已结束');
+        if (!s.enrollments.some(e => e.userId === userId && e.activityId === activityId)) s.enrollments.push({ id: id('enroll'), userId, activityId, date: today(), city: s.profile.city });
+        reserveQualified(s, userId, today());
+        return activityView(s, a, today());
+      });
+    },
+    checkIn() {
+      return change(s => {
+        const userId = requireCity(s);
+        if (!s.checkins.some(c => c.userId === userId && c.date === today())) s.checkins.push({ userId, date: today(), checkedAt: now() });
+        reserveQualified(s, userId, today());
+        return { date: today(), checkedIn: true };
+      });
+    },
+    claimReward(activityId) {
+      return change(s => {
+        const userId = requireCity(s); const a = activity(s, activityId);
+        const existing = s.claims.find(c => c.userId === userId && c.activityId === activityId);
+        if (existing) return existing;
+        const view = activityView(s, a, today());
+        if (!view.enrolled || view.progress < a.days) throw new Error('还未达标，完成挑战后再来领取');
+        if (today() > view.claimDeadline) throw new Error('奖励已过期');
+        if (!view.canClaim) throw new Error('奖励名额已满，看看其他挑战吧');
+        const start = s.grants.filter(g => g.userId === userId).reduce((date, g) => g.end > date ? g.end : date, today());
+        const grant = { id: id('grant'), userId, source: 'activity:' + activityId, title: a.title + ' · 奖励卡', start, end: shiftDate(start, a.rewardDays), days: a.rewardDays, dailyLimit: 3 };
+        const claim = { id: id('claim'), userId, activityId, title: a.title, days: a.rewardDays, date: today(), grantId: grant.id, start: grant.start, end: grant.end };
+        s.grants.push(grant); s.claims.push(claim); return claim;
+      });
+    },
+    getRewards() {
+      const s = read(); const userId = requireLogin(s);
+      return { available: s.activities.map(a => activityView(s, a, today())).filter(a => a.enrolled && !a.claimed), claims: s.claims.filter(c => c.userId === userId).slice().reverse() };
+    },
+    getRank() {
+      const s = read(); const userId = s.session && s.session.userId;
+      const rows = [ { nickname: '周小树', days: 21, initial: '周' }, { nickname: '叶晴', days: 19, initial: '叶' }, { nickname: '陈一一', days: 19, initial: '陈' }, { nickname: '慢慢来', days: 16, initial: '慢' }, { nickname: '小岛', days: 12, initial: '岛' } ];
+      const myDays = userId ? s.checkins.filter(c => c.userId === userId).length : 0;
+      if (userId && s.privacy.publicRank && myDays) rows.push({ nickname: s.profile.nickname, initial: s.profile.nickname.slice(0, 1), days: myDays, isMe: true });
+      rows.sort((a, b) => b.days - a.days);
+      rows.forEach((r, index) => { r.rank = index && rows[index - 1].days === r.days ? rows[index - 1].rank : index + 1; });
+      return { rows, myDays, participating: !!userId && s.privacy.publicRank, city: userId && s.profile.city || '温州' };
+    },
     loginDemo() {
       return change(s => {
         s.session = { userId: 'demo-user' };
