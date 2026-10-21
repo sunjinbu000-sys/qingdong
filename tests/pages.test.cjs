@@ -94,3 +94,59 @@ test("page action gate prevents duplicate simultaneous writes and reports storag
   assert.match(p.data.error, /存储/);
   assert.equal(p.data.loading, false);
 });
+test("diary follows today's rollover while preserving deliberately selected history", async () => {
+  const service = require("../miniprogram-1/miniprogram/services/index");
+  const originalSnapshot = service.getSnapshot,
+    originalDiary = service.getDiary;
+  service.getSnapshot = async () => ({ date: "2026-10-22", signedIn: true });
+  service.getDiary = async (date) => ({
+    date,
+    summary: {},
+    meals: [],
+    exercises: [],
+    weights: [],
+  });
+  try {
+    const p = loadPage("health");
+    p.setData({ date: "2026-10-21", today: "2026-10-21" });
+    await p.refresh();
+    assert.equal(p.data.date, "2026-10-22");
+    p.setData({ date: "2026-10-20", today: "2026-10-21" });
+    await p.refresh();
+    assert.equal(p.data.date, "2026-10-20");
+  } finally {
+    service.getSnapshot = originalSnapshot;
+    service.getDiary = originalDiary;
+  }
+});
+test("photo result navigation opens its diary date even after browsing old records", async () => {
+  const service = require("../miniprogram-1/miniprogram/services/index");
+  const originalSnapshot = service.getSnapshot,
+    originalDiary = service.getDiary,
+    originalSwitch = wx.switchTab;
+  let destination;
+  wx.switchTab = (options) => {
+    destination = options.url;
+  };
+  service.getSnapshot = async () => ({ date: "2026-10-22", signedIn: true });
+  service.getDiary = async (date) => ({
+    date,
+    summary: {},
+    meals: [],
+    exercises: [],
+    weights: [],
+  });
+  try {
+    const { navigate } = require("../miniprogram-1/miniprogram/utils/page");
+    navigate("/pages/health/index?date=2026-10-22");
+    assert.equal(destination, "/pages/health/index");
+    const p = loadPage("health");
+    p.setData({ date: "2026-10-20", today: "2026-10-22" });
+    await p.refresh();
+    assert.equal(p.data.date, "2026-10-22");
+  } finally {
+    service.getSnapshot = originalSnapshot;
+    service.getDiary = originalDiary;
+    wx.switchTab = originalSwitch;
+  }
+});

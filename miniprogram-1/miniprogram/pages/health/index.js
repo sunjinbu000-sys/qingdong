@@ -1,4 +1,4 @@
-const { page, service } = require("../../utils/page");
+const { page, service, takeDiaryDate } = require("../../utils/page");
 const { shiftDate } = require("../../utils/date");
 const groups = [
   ["breakfast", "早餐", "sun"],
@@ -17,8 +17,15 @@ page({
   refresh() {
     return this.loadData(async () => {
       const s = await service.getSnapshot();
+      const requestedDate = takeDiaryDate();
+      const followedToday =
+        !this.data.date || this.data.date === this.data.today;
+      const chosenDate =
+        requestedDate || (followedToday ? s.date : this.data.date);
       const date =
-        this.data.date && this.data.date <= s.date ? this.data.date : s.date;
+        chosenDate >= "2000-01-01" && chosenDate <= s.date
+          ? chosenDate
+          : s.date;
       this.setData({ signedIn: s.signedIn, today: s.date, date });
       if (!s.signedIn) {
         this.setData({
