@@ -85,4 +85,3 @@ Domain 方法：getSnapshot()、loginDemo()、logout()、saveProfile(input)、ge
 
 ## 执行方式与确认
 建议由当前会话直接逐项实施（Native），任务共享同一数据服务，连续实现更容易保持接口一致。执行前请用户审阅本计划并确认；这是实施计划确认，不重新讨论已确认的设计范围。
-
