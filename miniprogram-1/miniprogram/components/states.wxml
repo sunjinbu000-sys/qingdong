@@ -1,0 +1,1 @@
+<template name="feedback"><view wx:if="{{loading}}" class="state"><view class="loading-mark"></view><text>正在准备今天的轻动时光…</text></view><view wx:elif="{{error}}" class="state"><text class="state-title">暂时没能加载</text><text>{{error}}</text><button class="btn small" bindtap="retry">再试一次</button></view></template>

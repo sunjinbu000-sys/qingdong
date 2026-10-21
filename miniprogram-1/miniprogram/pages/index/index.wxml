@@ -1,29 +1,10 @@
-<!--index.wxml-->
-<view class="container">
-  <view class="title">快速了解云开发</view>
-  <view class="top_tip">免鉴权接口调用 免部署后台 高并发</view>
-  <view class="power" wx:key="title" wx:for="{{powerList}}" wx:for-item="power">
-    <view class="power_info" data-index="{{index}}" data-type="{{ power.type }}" bindtap="onClickPowerInfo">
-      <view class="power_info_text">
-        <view class="power_info_text_title">
-          {{power.title}}
-          <view class="power_info_text_tag" wx:if="{{power.tag}}">{{power.tag}}</view>
-        </view>
-        <view class="power_info_text_tip">{{power.tip}}</view>
-      </view>
-      <image wx:if="{{!power.showItem && power.item.length}}" class="power_info_more" src="../../images/arrow.svg"></image>
-      <image wx:if="{{power.showItem && power.item.length}}" class="power_info_less" src="../../images/arrow.svg"></image>
-      <image wx:if="{{!power.item.length}}" class="power_item_icon" src="../../images/arrow.svg"></image>
-    </view>
-    <view wx:if="{{power.showItem}}">
-      <view wx:key="title" wx:for="{{power.item}}">
-        <view class="line"></view>
-        <view class="power_item" bindtap="jumpPage" data-type="{{ item.type }}" data-page="{{item.page}}">
-          <view class="power_item_title">{{item.title}}</view>
-          <image class="power_item_icon" src="../../images/arrow.svg"></image>
-        </view>
-      </view>
-    </view>
-  </view>
-  <cloud-tip-modal showTipProps="{{showTip}}" title="{{title}}" content="{{content}}"></cloud-tip-modal>
-</view>
+<import src="../../components/states.wxml"/>
+<view class="page"><template is="feedback" data="{{loading,error}}"/><block wx:if="{{!loading &amp;&amp; !error}}">
+<view class="row mb"><view class="brand"><view class="brand-symbol">q</view><view><view class="brand-name">轻动</view><text class="brand-en">QINGDONG CLUB</text></view></view><button class="city" data-url="/pages/account/index" bindtap="go">⌖ {{snapshot.profile.city || '选择城市'}}⌄</button></view>
+<view class="welcome"><view class="eyebrow">A LITTLE EVERY DAY</view><view class="heading">每一份坚持，<text class="green">都算数。</text></view><view class="subtitle">{{greeting}}，{{snapshot.profile.nickname}}。一起，把日子过得轻盈。</view></view>
+<view class="hero checkin-hero section"><view class="row top"><view class="grow"><text class="pill light">{{snapshot.date}} · 今日轻动</text><view class="hero-title">{{snapshot.checkedIn ? '今天的坚持，已被记录' : '从一个小小的签到开始'}}</view><view class="hero-desc">不追赶谁，只比昨天多爱自己一点。</view></view><view class="check-ring"><view class="number">{{snapshot.totalDays}}</view><view class="label">累计坚持 / 天</view></view></view><view class="hero-bottom row"><button class="btn" loading="{{busy}}" disabled="{{busy || snapshot.checkedIn}}" bindtap="checkIn">{{snapshot.checkedIn ? '✓ 今日已签到' : '开始今日签到  ↗'}}</button><text class="small-text">每一天，都值得被看见</text></view></view>
+<view class="section"><view class="section-head"><text class="section-title">今天，也要好好照顾自己</text><button class="link" data-url="/pages/health/index" bindtap="go">查看日记 ›</button></view><view class="grid3"><view class="stat-card"><image class="icon" src="/images/ui/cup.svg"/><view class="number">{{snapshot.calories}}<text class="unit">kcal</text></view><text class="label">今日饮食</text></view><view class="stat-card"><image class="icon" src="/images/ui/walk.svg"/><view class="number">{{snapshot.minutes}}<text class="unit">分钟</text></view><text class="label">轻动时光</text></view><view class="stat-card"><image class="icon" src="/images/ui/weight.svg"/><view class="number">{{snapshot.weight}}<text class="unit">kg</text></view><text class="label">今日体重</text></view></view></view>
+<view class="photo-entry section" data-url="/pages/photo/index" bindtap="go"><view class="row"><view class="icon-box large"><image class="icon" src="/images/ui/camera.svg"/></view><view class="grow"><view class="title">拍下这一餐，把日记记好</view><view class="small-text mt-sm">用一张照片，记录认真生活的自己</view></view><text class="arrow">↗</text></view><view class="photo-bottom"><text>拍照识餐</text><text>模拟体验 · 结果仅为样例</text></view></view>
+<view class="section"><view class="section-head"><text class="section-title">一起，做一点小改变</text><button class="link" data-url="/pages/challenges/index" bindtap="go">全部挑战 ›</button></view><view wx:for="{{snapshot.activities}}" wx:key="id" wx:if="{{index &lt; 2}}" class="card activity-preview" data-url="/pages/activity/index?id={{item.id}}" bindtap="go"><view class="row"><view class="activity-art {{item.color}}"><image class="icon" src="/images/ui/{{item.icon}}.svg"/></view><view class="grow"><text class="pill">{{item.tag}}</text><view class="title mt-sm">{{item.title}}</view><view class="small-text mt-sm">累计签到 {{item.days}} 天 · 赠 {{item.rewardDays}} 天会员</view></view><text class="arrow">›</text></view></view></view>
+<view class="rank-entry section" data-url="/pages/rank/index" bindtap="go"><view class="row"><image class="icon" src="/images/ui/rank.svg"/><view class="grow"><view class="title">每一份坚持，都闪闪发光</view><view class="small-text">去看看打卡榜上的轻动伙伴</view></view><text class="arrow">↗</text></view></view><view class="mock-note"><text class="mock-tag">模拟体验</text><text> 数据保存在本机，尚未连接后端服务</text></view>
+</block><view class="footnote">轻动 · 每一步坚持，都值得被看见</view></view>

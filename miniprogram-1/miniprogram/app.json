@@ -1,14 +1,48 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/example/index"
+    "pages/health/index",
+    "pages/challenges/index",
+    "pages/profile/index"
   ],
   "window": {
-    "backgroundColor": "#F6F6F6",
-    "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#F6F6F6",
-    "navigationBarTitleText": "云开发 QuickStart",
-    "navigationBarTextStyle": "black"
+    "navigationBarTitleText": "轻动",
+    "navigationBarBackgroundColor": "#f6f7f2",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f6f7f2",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#899388",
+    "selectedColor": "#1d6651",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/nav/index.png",
+        "selectedIconPath": "images/nav/index-active.png"
+      },
+      {
+        "pagePath": "pages/health/index",
+        "text": "健康日记",
+        "iconPath": "images/nav/health.png",
+        "selectedIconPath": "images/nav/health-active.png"
+      },
+      {
+        "pagePath": "pages/challenges/index",
+        "text": "挑战",
+        "iconPath": "images/nav/challenges.png",
+        "selectedIconPath": "images/nav/challenges-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "images/nav/profile.png",
+        "selectedIconPath": "images/nav/profile-active.png"
+      }
+    ]
   },
   "sitemapLocation": "sitemap.json",
   "style": "v2",

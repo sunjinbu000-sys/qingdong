@@ -1,0 +1,2 @@
+<import src="../../components/states.wxml"/>
+<view class="page"><template is="feedback" data="{{loading,error}}"/><block wx:if="{{!loading &amp;&amp; !error}}"><view class="eyebrow">QINGDONG CLUB</view><view class="heading">健康日记</view><view class="subtitle">好好吃饭，轻轻运动，认真记录每一天。</view><view class="card section"><view class="empty">轻动的旅程，从今天开始。</view><button class="btn" data-url="/pages/index/index" bindtap="go">回到首页</button></view></block><view class="footnote">轻动 · 每一步坚持，都值得被看见</view></view>
