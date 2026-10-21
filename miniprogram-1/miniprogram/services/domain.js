@@ -1,6 +1,7 @@
 const { bizDate, shiftDate, validDate } = require('../utils/date');
 const { createSeed } = require('./seed');
 const { activityView, reserveQualified } = require('./challenges');
+const { membershipView, mealSlot } = require('./membership');
 const CITIES = ['温州', '杭州', '宁波', '上海', '北京', '广州', '深圳', '成都'];
 const SLOTS = ['breakfast', 'lunch', 'dinner', 'snack'];
 function requireLogin(state) {
@@ -51,6 +52,22 @@ function createDomain({ store, now = Date.now }) {
     return result;
   }
   return {
+    getMembership() { const s = read(); requireLogin(s); return membershipView(s, today()); },
+    recognizeMeal(input) {
+      return change(s => {
+        const userId = requireCity(s);
+        const requestId = text(input.requestId, '请求编号', 100);
+        const existing = s.recognitions.find(r => r.userId === userId && r.requestId === requestId);
+        if (existing) return existing;
+        if (typeof input.imagePath !== 'string' || !input.imagePath.trim() || input.imagePath.length > 1000) throw new Error('请先保存一张食物照片');
+        const m = membershipView(s, today());
+        if (!m.activeGrant || m.remaining < 1) throw new Error('今日识餐额度不足，请查看会员权益');
+        const slot = mealSlot(now());
+        const record = { id: id('record'), userId, type: 'meal', date: today(), slot, name: '鸡肉蔬菜饭 · 模拟样例', kcal: 520, source: 'recognition', imagePath: input.imagePath, createdAt: now() };
+        const recognition = { id: id('recognition'), userId, requestId, recordId: record.id, grantId: m.activeGrant.id, date: today(), slot, imagePath: input.imagePath, name: record.name, kcal: 520, protein: 32, carbohydrate: 62, fat: 16, mock: true };
+        s.records.push(record); s.recognitions.push(recognition); return recognition;
+      });
+    },
     listActivities() { const s = read(); return s.activities.map(a => activityView(s, a, today())); },
     getActivity(activityId) { const s = read(); return activityView(s, activity(s, activityId), today()); },
     enroll(activityId) {

@@ -8,7 +8,9 @@
     "pages/records/index",
     "pages/activity/index",
     "pages/rank/index",
-    "pages/rewards/index"
+    "pages/rewards/index",
+    "pages/photo/index",
+    "pages/membership/index"
   ],
   "window": {
     "navigationBarTitleText": "轻动",
