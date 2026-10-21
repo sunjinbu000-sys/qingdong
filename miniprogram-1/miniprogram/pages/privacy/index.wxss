@@ -1,0 +1,1 @@
+.privacy-line{display:flex;align-items:flex-start;gap:20rpx;padding:22rpx 0;border-bottom:1rpx solid #edf0e8}.privacy-line:last-child{border:0}.privacy-line .pill{flex-shrink:0;margin-top:5rpx}

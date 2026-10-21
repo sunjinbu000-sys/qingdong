@@ -1,0 +1,60 @@
+# 一期接口边界与后端对接建议
+
+本文为前端建议合约，不代表后端已有这些路径。地址、认证、城市 ID、枚举和错误码需要与后端确认。
+
+## 当前架构
+
+页面 → services/index.js（Promise）→ domain.js（模拟命令）→ store.js（本机存储）。challenges.js、membership.js 分别计算活动和权益读模型。
+
+默认 mode: mock，存储键为 qingdong.phase1.v1。其他模式明确报错，真实 wx.request 适配待合约确定。AppSecret、AI 密钥和支付密钥不能放在小程序中。
+
+## 方法与建议路由
+
+| 服务方法 | 建议后端接口 | 返回／行为 |
+|---|---|---|
+| loginDemo() | POST /auth/wechat/login | 替换为 wx.login code 换会话；手机号按已有平台实现 |
+| logout() | POST /auth/logout | 清会话，服务端失效待确认 |
+| getSnapshot() | GET /qingdong/home | 日期、个人展示字段、签到、累计天数、今日摘要和活动 |
+| saveProfile(input) | PUT /qingdong/profile | nickname、city（生产用 cityId）、height、targetWeight |
+| getDiary(date) | GET /qingdong/diary?date= | meals、exercises、weights、summary |
+| saveRecord(input) | POST /qingdong/records | type、date 和类型专属字段，返回记录 |
+| deleteRecord(id) | DELETE /qingdong/records/:id | 仅能删本人记录 |
+| listActivities() | GET /qingdong/activities | 合并总部和本城活动 |
+| getActivity(id) | GET /qingdong/activities/:id | 目标、日期、报名、进度、名额、领奖状态 |
+| enroll(id) | POST /qingdong/activities/:id/enrollments | 幂等报名和城市快照 |
+| checkIn() | POST /qingdong/checkins | 服务端北京时间，一账号一天一次 |
+| claimReward(activityId) | POST /qingdong/activities/:id/claims | 幂等发奖，返回流水和授予 ID |
+| getRewards() | GET /qingdong/rewards | 本人活动状态与领取流水 |
+| getRank() | GET /qingdong/ranks/checkins | 昵称、头像、签到天数和名次，不含原始健康字段 |
+| getMembership() | GET /qingdong/membership | 当前授予、时间线和当日已用／剩余 |
+| recognizeMeal(input) | POST /qingdong/meals/recognitions | 先上传图片再传文件 ID、requestId，返回结果和日记 ID |
+| getPrivacy()/savePrivacy(input) | GET/PUT /qingdong/privacy | publicRank；showPosterWeight 是保留字段，本期无海报 |
+| resetDemo() | 无生产路由 | 仅本机重置，不映射生产注销或删号 |
+
+## 字段和规则
+
+日期为北京时间 UTC+8 的 YYYY-MM-DD。权益 start 包含、end 不包含；例如21日领取3天卡，有效至24日00:00。
+
+记录公共字段：id、userId、type、date、createdAt。
+
+- meal：name、kcal、slot（breakfast/lunch/dinner/snack）；识餐额外 source: recognition、imagePath。
+- exercise：name、minutes。
+- weight：kg。
+
+活动模型：id、title、subtitle、days、start、end、tag、rewardDays、enrolled、progress、progressPercent、remainingSlots、canEnroll、canClaim、claimed、claimDeadline、statusLabel。
+
+模拟规则：报名当日及之后、活动期间的有效签到计进度；活动结束后7天是示例领奖截止。真实策略由后端返回。达标时占位，正式库存、预算和授予由后端原子处理。
+
+会员模型：activeGrant、timeline、used、dailyLimit、remaining、date。授予保存来源、起止日、每日额度，领取先后顺延，一天仅一份生效。
+
+## 错误与幂等
+
+模拟服务返回 Error.message。网络适配需统一映射 code/message/data，区分未登录、未选城、输入无效、重复请求、活动结束、未达标、已领奖、名额不足、奖励过期、额度不足、识餐失败和网络失败。
+
+服务端已执行、客户端超时的操作必须可用同一幂等 ID 重试。真实识餐使用额度预占／确认／释放，前端不裁决额度或先增加权益。
+
+## 模拟边界
+
+本机固定 demo-user；城市为演示清单；榜单伙伴虚构；会员奖励仅本机生效；识餐固定520 kcal，不分析照片。新人3天、每日3次均为演示配置。
+
+生产前需确定授权、合法域名、图片上传保留、退出注销、跨端一致性及错误码。

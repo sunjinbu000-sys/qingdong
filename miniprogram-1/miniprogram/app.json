@@ -10,7 +10,8 @@
     "pages/rank/index",
     "pages/rewards/index",
     "pages/photo/index",
-    "pages/membership/index"
+    "pages/membership/index",
+    "pages/privacy/index"
   ],
   "window": {
     "navigationBarTitleText": "轻动",

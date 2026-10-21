@@ -1,2 +1,27 @@
-const {page,service}=require('../../utils/page');
-page({data:{activity:{}},onLoad(o){this.activityId=o.id;},refresh(){return this.loadData(async()=>{this.setData({activity:await service.getActivity(this.activityId)});});},enroll(){this.action(async()=>{if(!await this.requireAccount())return;await service.enroll(this.activityId);wx.showToast({title:'报名成功，一起坚持',icon:'success'});await this.refresh();});},claim(){this.action(async()=>{await service.claimReward(this.activityId);wx.showToast({title:'奖励已领取',icon:'success'});await this.refresh();});}});
+const { page, service } = require("../../utils/page");
+page({
+  data: { activity: {} },
+  onLoad(o) {
+    this.activityId = o.id;
+  },
+  refresh() {
+    return this.loadData(async () => {
+      this.setData({ activity: await service.getActivity(this.activityId) });
+    });
+  },
+  enroll() {
+    this.action(async () => {
+      if (!(await this.requireAccount())) return;
+      await service.enroll(this.activityId);
+      wx.showToast({ title: "报名成功，一起坚持", icon: "success" });
+      await this.refresh();
+    });
+  },
+  claim() {
+    this.action(async () => {
+      await service.claimReward(this.activityId);
+      wx.showToast({ title: "奖励已领取", icon: "success" });
+      await this.refresh();
+    });
+  },
+});
