@@ -11,7 +11,7 @@ page({
     shortcuts: [
       { title: "轻友论坛", route: "forum", icon: "leaf" },
       { title: "我的小队", route: "team", icon: "flag" },
-      { title: "体重核验", route: "weight", icon: "weight" },
+      { title: "榜单", route: "rank", icon: "rank" },
       { title: "AI长计划", route: "ai-plan", icon: "sprout" },
       { title: "活动广场", route: "events", icon: "sun" },
       { title: "邀请好友", route: "invite", icon: "gift" },
