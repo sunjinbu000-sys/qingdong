@@ -23,3 +23,9 @@
 .home-location-pin{font-size:31rpx;line-height:1;color:#719364;flex-shrink:0}
 .home-city-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .home-city-arrow{font-size:24rpx;color:#93a08b;flex-shrink:0}
+
+.checkin-hero .checkin-slogan{align-items:center;gap:24rpx;margin-top:20rpx}
+.checkin-slogan .hero-title{margin:0 0 10rpx;max-width:none}
+.checkin-slogan .hero-desc{max-width:none}
+.checkin-slogan .check-ring{width:148rpx;height:148rpx;flex-shrink:0}
+.checkin-slogan .check-ring .label{font-size:18rpx;white-space:nowrap}
