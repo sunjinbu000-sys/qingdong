@@ -12,7 +12,7 @@ page({
       { title: "轻友论坛", route: "forum", icon: "forum" },
       { title: "我的小队", route: "team", icon: "team" },
       { title: "榜单", route: "rank", icon: "rank" },
-      { title: "AI长计划", route: "ai-plan", icon: "ai-plan" },
+      { title: "轻动计划", route: "ai-plan", icon: "ai-plan" },
       { title: "活动广场", route: "events", icon: "events" },
       { title: "邀请好友", route: "invite", icon: "invite" },
       { title: "成就徽章", route: "badges", icon: "badges" },
