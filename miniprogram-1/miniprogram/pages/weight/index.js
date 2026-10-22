@@ -1,4 +1,5 @@
 const { page, service, navigate } = require("../../utils/page");
+const { chooseFoodImage, persistFoodImage } = require("../../utils/media");
 page({
   data: {},
   refresh() {
@@ -22,16 +23,15 @@ page({
     });
   },
   photo() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ["image"],
-      success: (r) =>
-        wx.saveFile({
-          tempFilePath: r.tempFiles[0].tempFilePath,
-          success: (s) => this.setData({ evidence: s.savedFilePath }),
-          fail: () =>
-            wx.showToast({ title: "照片保存失败，请重试", icon: "none" }),
-        }),
+    return this.action(async () => {
+      const image = await chooseFoodImage(wx);
+      if (!image) return;
+      const evidence = await persistFoodImage(
+        wx,
+        image,
+        "weight-" + Date.now(),
+      );
+      this.setData({ evidence });
     });
   },
 });

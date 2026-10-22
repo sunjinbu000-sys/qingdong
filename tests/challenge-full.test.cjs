@@ -547,4 +547,8 @@ test("operator sees form values only for own-city events, public cards never inc
     a.getEvent(foreign.id).registrations[0].values.phone,
     "13900000000",
   );
+  assert.equal(a.getEvent(foreign.id).canManage, true);
+  x.s.session = null;
+  assert.equal(a.getEvent(foreign.id).registrations.length, 0);
+  assert.equal(a.getEvent(foreign.id).canManage, false);
 });

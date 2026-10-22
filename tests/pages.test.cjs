@@ -20,6 +20,32 @@ global.wx = {
   getSystemInfoSync: () => ({ platform: "android", windowWidth: 390 }),
 };
 global.getCurrentPages = () => [{}];
+test("weight evidence photos use owned files, cancel safely and preserve previous evidence on save failure", async () => {
+  const page = loadPage("weight");
+  const old = { ...global.wx };
+  try {
+    wx.env = { USER_DATA_PATH: "/owned" };
+    wx.chooseMedia = (o) => o.fail({ errMsg: "chooseMedia:fail cancel" });
+    await page.photo();
+    assert.equal(page.data.evidence, undefined);
+    wx.chooseMedia = (o) =>
+      o.success({
+        tempFiles: [{ tempFilePath: "/temp/photo.jpg", size: 100 }],
+      });
+    wx.getFileSystemManager = () => ({ copyFile: (o) => o.success() });
+    await page.photo();
+    assert.match(
+      page.data.evidence,
+      /^\/owned\/qingdong-food-weight-\d+\.jpg$/,
+    );
+    const evidence = page.data.evidence;
+    wx.getFileSystemManager = () => ({ copyFile: (o) => o.fail() });
+    await page.photo();
+    assert.equal(page.data.evidence, evidence);
+  } finally {
+    global.wx = old;
+  }
+});
 function loadPage(name) {
   let definition;
   global.Page = (value) => {

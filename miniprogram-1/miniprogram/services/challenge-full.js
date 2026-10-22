@@ -943,10 +943,12 @@ function createChallengeFullDomain(c) {
         u = s.session && s.session.userId;
       const role = full(s).role,
         admin =
-          ["admin", "hq"].includes(role) ||
-          (role === "operator" && e.scope !== "all" && e.city === city(s));
+          !!u &&
+          (["admin", "hq"].includes(role) ||
+            (role === "operator" && e.scope !== "all" && e.city === city(s)));
       return {
         ...clone(e),
+        canManage: admin,
         registrations: admin
           ? clone(e.registrations)
           : e.registrations.filter((r) => r.userId === u),
