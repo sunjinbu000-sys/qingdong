@@ -1,1 +1,8 @@
 .diary-summary .number{font-size:37rpx}.meal-empty{font-size:22rpx;color:#98a18e;padding-top:20rpx}.diary-summary .grid3{gap:3rpx}
+
+.calendar-caption{display:flex;flex-direction:column;gap:8rpx;font-size:27rpx;color:#385947;margin-bottom:20rpx}.calendar-caption text{font-size:21rpx;color:#95a18d}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8rpx}
+.calendar-weekday{text-align:center;font-size:23rpx;color:#97a28f;padding:8rpx 0}
+.page .calendar-day{width:100%;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5rpx;padding:12rpx 0;background:transparent;color:#49614c;font-size:25rpx;line-height:1.4;border-radius:18rpx}
+.page .calendar-day.selected{background:#1d6651;color:#fff}.calendar-day[disabled]{opacity:.28}.calendar-dot{width:7rpx;height:7rpx;border-radius:50%;background:transparent}.calendar-dot.marked{background:#96b47a}.selected .calendar-dot.marked{background:#e6f3d4}
+.day-health{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12rpx;font-size:22rpx;color:#708463;border-top:1rpx solid #d3dfc8;padding-top:20rpx}.diary-summary .number{overflow-wrap:anywhere}

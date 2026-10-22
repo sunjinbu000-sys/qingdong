@@ -13,6 +13,10 @@ page({
     today: "",
     diary: { summary: {}, meals: [], exercises: [], weights: [] },
     mealGroups: [],
+    overview: { nutrition: {}, calendar: [] },
+    weekdays: ["日", "一", "二", "三", "四", "五", "六"],
+    paddingCells: [],
+    dayCheckedIn: false,
   },
   refresh() {
     return this.loadData(async () => {
@@ -34,7 +38,7 @@ page({
         });
         return;
       }
-      const diary = await service.getDiary(date);
+      const [diary, overview] = await Promise.all([service.getDiary(date), service.getNutritionOverview(date)]);
       const mealGroups = groups.map(([key, label, icon]) => {
         const records = diary.meals.filter((x) => x.slot === key);
         return {
@@ -45,8 +49,15 @@ page({
           total: Math.round(records.reduce((n, r) => n + r.kcal, 0)),
         };
       });
-      this.setData({ diary, mealGroups });
+      this.setData({ diary, mealGroups, overview, monthLabel: date.slice(0, 7),
+        dayCheckedIn: overview.calendar.some(day => day.date === date && day.checkedIn),
+        paddingCells: Array.from({ length: new Date(date.slice(0, 7) + "-01T00:00:00Z").getUTCDay() }, (_, i) => i),
+      });
     });
+  },
+  selectCalendarDate(e) {
+    this.setData({ date: e.currentTarget.dataset.date });
+    return this.refresh();
   },
   selectDate(e) {
     this.setData({ date: e.detail.value });
