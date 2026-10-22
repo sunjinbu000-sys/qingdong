@@ -47,4 +47,4 @@
 .welcome-checkin .check-ring .label{font-size:16rpx;line-height:1.5}
 .page .welcome-checkin-button{font-size:21rpx;line-height:1.5;padding:7rpx 0;letter-spacing:1rpx}
 
-.welcome-checkin{margin-right:52rpx;position:relative;top:14rpx}
+.welcome-checkin{margin-right:68rpx;position:relative;top:0}
