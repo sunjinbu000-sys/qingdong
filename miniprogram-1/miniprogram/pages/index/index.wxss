@@ -36,3 +36,13 @@
 .welcome-checkin .check-ring .label{font-size:17rpx;white-space:nowrap}
 .page .welcome-checkin-button{width:100%;min-width:0;padding:8rpx 0;line-height:1.5;border-radius:24rpx;background:#e7efdf;color:#32664f;font-size:23rpx;font-weight:600}
 .welcome-checkin-button[disabled]{opacity:.65}
+
+.welcome{gap:24rpx;align-items:center}
+.welcome .home-greeting{font-size:34rpx;line-height:1.5;margin-bottom:14rpx}
+.welcome .welcome-copy{font-size:23rpx;line-height:1.85;color:#889580}
+.welcome-copy-line{display:block;margin-top:3rpx}
+.welcome-checkin{width:140rpx;gap:10rpx;padding-top:0}
+.welcome-checkin .check-ring{width:136rpx;height:136rpx;border-width:9rpx}
+.welcome-checkin .check-ring .number{font-size:40rpx;line-height:1.3}
+.welcome-checkin .check-ring .label{font-size:16rpx;line-height:1.5}
+.page .welcome-checkin-button{font-size:21rpx;line-height:1.5;padding:7rpx 0;letter-spacing:1rpx}
