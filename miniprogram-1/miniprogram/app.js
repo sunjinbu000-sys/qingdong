@@ -1,4 +1,4 @@
-const service = require("./services");
+const service = require("./services/index");
 App({
   globalData: { appCode: "qingdong", mode: "mock" },
   onShow() {
