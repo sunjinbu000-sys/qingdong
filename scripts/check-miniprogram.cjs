@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const vm = require("node:vm");
 const root = path.resolve(__dirname, "../miniprogram-1/miniprogram");
 function walk(dir) {
   return fs
@@ -88,6 +89,16 @@ if (compilerIndex >= 0) {
           (result.error && result.error.message) ||
           "compiler failed"),
     );
+    if (result.status === 0 && extension === '.wxml') {
+      try {
+        const context = { window: {}, console };
+        vm.createContext(context);
+        vm.runInContext(result.stdout, context, { timeout: 10000 });
+        for (const page of app.pages)
+          check(typeof context.$gwx(page + '.wxml') === 'function', 'Compiled WXML missing: ' + page);
+        console.log('Compiled WXML page registry checked: ' + app.pages.length + ' pages');
+      } catch (error) { check(false, 'Cannot verify compiled WXML registry: ' + error.message); }
+    }
     if (result.status === 0)
       console.log(name + ": PASS (" + inputs.length + " files)");
   }
