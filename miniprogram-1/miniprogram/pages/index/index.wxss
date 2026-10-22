@@ -27,5 +27,9 @@
 .checkin-hero .checkin-slogan{align-items:center;gap:24rpx;margin-top:20rpx}
 .checkin-slogan .hero-title{margin:0 0 10rpx;max-width:none}
 .checkin-slogan .hero-desc{max-width:none}
-.checkin-slogan .check-ring{width:148rpx;height:148rpx;flex-shrink:0}
-.checkin-slogan .check-ring .label{font-size:18rpx;white-space:nowrap}
+
+.welcome-body{display:flex;align-items:center;gap:22rpx}
+.welcome-body .welcome-copy{flex:1;min-width:0}
+.welcome-body .check-ring{width:144rpx;height:144rpx;border-width:10rpx;flex-shrink:0}
+.welcome-body .check-ring .number{font-size:42rpx}
+.welcome-body .check-ring .label{font-size:17rpx;white-space:nowrap}
