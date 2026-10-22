@@ -339,3 +339,22 @@ test("photo result navigation opens its diary date even after browsing old recor
     wx.switchTab = originalSwitch;
   }
 });
+
+test("signed-out diary shows a selectable calendar and clears previous personal data", async () => {
+  const service = require("../miniprogram-1/miniprogram/services/index");
+  const original = service.getSnapshot;
+  service.getSnapshot = async () => ({ date: "2026-10-22", signedIn: false });
+  try {
+    const p = loadPage("health");
+    p.setData({ overview: { nutrition: { protein: 99 }, calendar: [{ date: "2026-10-01", hasRecords: true }] }, dayCheckedIn: true });
+    await p.refresh();
+    assert.equal(p.data.error, "");
+    assert.equal(p.data.overview.calendar.length, 31);
+    assert.equal(p.data.overview.calendar.filter(d => d.selected)[0].date, "2026-10-22");
+    assert.equal(p.data.overview.calendar.some(d => d.hasRecords || d.checkedIn), false);
+    assert.equal(p.data.dayCheckedIn, false);
+    await p.selectCalendarDate({ currentTarget: { dataset: { date: "2026-10-20" } } });
+    assert.equal(p.data.date, "2026-10-20");
+    assert.equal(p.data.overview.calendar.filter(d => d.selected)[0].date, "2026-10-20");
+  } finally { service.getSnapshot = original; }
+});

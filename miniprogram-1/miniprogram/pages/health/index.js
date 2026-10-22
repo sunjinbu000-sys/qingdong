@@ -33,8 +33,19 @@ page({
       this.setData({ signedIn: s.signedIn, today: s.date, date });
       if (!s.signedIn) {
         this.setData({
-          diary: { summary: {}, meals: [], exercises: [], weights: [] },
+          diary: { summary: { calories: 0, minutes: 0, weight: "—" }, meals: [], exercises: [], weights: [] },
           mealGroups: [],
+          dayCheckedIn: false,
+          monthLabel: date.slice(0, 7),
+          paddingCells: Array.from({ length: new Date(date.slice(0, 7) + "-01T00:00:00Z").getUTCDay() }, (_, i) => i),
+          overview: {
+            exerciseCalories: 0,
+            nutrition: { protein: 0, carb: 0, fat: 0 },
+            calendar: Array.from({ length: new Date(Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)), 0)).getUTCDate() }, (_, i) => {
+              const dayDate = date.slice(0, 7) + "-" + String(i + 1).padStart(2, "0");
+              return { date: dayDate, day: i + 1, selected: dayDate === date, future: dayDate > s.date, hasRecords: false, checkedIn: false };
+            }),
+          },
         });
         return;
       }
