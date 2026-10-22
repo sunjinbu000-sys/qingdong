@@ -1,6 +1,37 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { setup } = require("./helpers.cjs");
+test("recognition honors selected meal slot, retries keep original slot and invalid slots spend nothing", () => {
+  const f = setup();
+  f.login();
+  const d = f.domain;
+  const r = d.recognizeMeal({
+    imagePath: "wxfile://saved/a.jpg",
+    requestId: "selected-slot",
+    slot: "dinner",
+  });
+  assert.equal(r.slot, "dinner");
+  assert.equal(d.getDiary("2026-10-21").meals[0].slot, "dinner");
+  assert.equal(
+    d.recognizeMeal({
+      imagePath: "wxfile://saved/a.jpg",
+      requestId: "selected-slot",
+      slot: "breakfast",
+    }).slot,
+    "dinner",
+  );
+  const before = d.getMembership().remaining;
+  assert.throws(
+    () =>
+      d.recognizeMeal({
+        imagePath: "wxfile://saved/a.jpg",
+        requestId: "bad-slot",
+        slot: "other",
+      }),
+    /餐次/,
+  );
+  assert.equal(d.getMembership().remaining, before);
+});
 test("recognition atomically deducts once and writes a labeled meal, repeated request is idempotent", () => {
   const f = setup(),
     d = f.domain;

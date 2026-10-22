@@ -1,5 +1,32 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+test("camera shutter uses camera context and propagates capture errors", async () => {
+  const { takeFoodPhoto } = require("../miniprogram-1/miniprogram/utils/media");
+  assert.equal(
+    await takeFoodPhoto({
+      createCameraContext: () => ({
+        takePhoto: (o) => o.success({ tempImagePath: "wxfile://camera.jpg" }),
+      }),
+    }),
+    "wxfile://camera.jpg",
+  );
+  await assert.rejects(
+    () =>
+      takeFoodPhoto({
+        createCameraContext: () => ({
+          takePhoto: (o) => o.fail({ errMsg: "camera stopped" }),
+        }),
+      }),
+    /拍照/,
+  );
+  await assert.rejects(
+    () =>
+      takeFoodPhoto({
+        createCameraContext: () => ({ takePhoto: (o) => o.success({}) }),
+      }),
+    /照片/,
+  );
+});
 const {
   chooseFoodImage,
   persistFoodImage,

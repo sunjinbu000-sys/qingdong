@@ -12,7 +12,14 @@ page({
     const type = ["meal", "exercise", "weight"].includes(options.type)
       ? options.type
       : "meal";
-    this.setData({ type, "form.date": options.date || bizDate() });
+    const slotIndex = ["breakfast", "lunch", "dinner", "snack"].indexOf(
+      options.slot,
+    );
+    this.setData({
+      type,
+      "form.date": options.date || bizDate(),
+      slotIndex: slotIndex >= 0 ? slotIndex : 1,
+    });
   },
   refresh() {
     this.setData({ today: bizDate(), loading: false });

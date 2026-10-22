@@ -1,9 +1,9 @@
-function chooseFoodImage(api) {
+function chooseFoodImage(api, sourceType = ["album", "camera"]) {
   return new Promise((resolve, reject) => {
     api.chooseMedia({
       count: 1,
       mediaType: ["image"],
-      sourceType: ["album", "camera"],
+      sourceType,
       sizeType: ["compressed"],
       success(result) {
         const file = result.tempFiles && result.tempFiles[0];
@@ -24,15 +24,12 @@ function persistFoodImage(api, tempFilePath, requestId) {
   const safeId = requestId.replace(/[^a-zA-Z0-9-]/g, "");
   const path = api.env.USER_DATA_PATH + "/qingdong-food-" + safeId + ".jpg";
   return new Promise((resolve, reject) => {
-    api
-      .getFileSystemManager()
-      .copyFile({
-        srcPath: tempFilePath,
-        destPath: path,
-        success: () => resolve(path),
-        fail: () =>
-          reject(new Error("照片保存失败，请检查设备空间，额度未扣减")),
-      });
+    api.getFileSystemManager().copyFile({
+      srcPath: tempFilePath,
+      destPath: path,
+      success: () => resolve(path),
+      fail: () => reject(new Error("照片保存失败，请检查设备空间，额度未扣减")),
+    });
   });
 }
 function clearOwnedImages(api) {
@@ -63,4 +60,28 @@ function clearOwnedImages(api) {
     });
   });
 }
-module.exports = { chooseFoodImage, persistFoodImage, clearOwnedImages };
+function takeFoodPhoto(api) {
+  return new Promise((resolve, reject) => {
+    try {
+      api.createCameraContext().takePhoto({
+        quality: "normal",
+        success(result) {
+          if (!result.tempImagePath)
+            return reject(Error("没有取得照片，请重新拍摄"));
+          resolve(result.tempImagePath);
+        },
+        fail() {
+          reject(Error("拍照失败，请检查相机权限后重试"));
+        },
+      });
+    } catch (_) {
+      reject(Error("拍照暂不可用，请重新打开相机"));
+    }
+  });
+}
+module.exports = {
+  chooseFoodImage,
+  persistFoodImage,
+  clearOwnedImages,
+  takeFoodPhoto,
+};

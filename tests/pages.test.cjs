@@ -20,6 +20,65 @@ global.wx = {
   getSystemInfoSync: () => ({ platform: "android", windowWidth: 390 }),
 };
 global.getCurrentPages = () => [{}];
+test("camera circle captures once before login, keeps selected slot and later saves the same photo", async () => {
+  const previous = saved,
+    oldWx = { ...wx };
+  saved = undefined;
+  try {
+    const service = require("../miniprogram-1/miniprogram/services/index");
+    const p = loadPage("photo");
+    p.onLoad({ slot: "dinner" });
+    await p.refresh();
+    p.onCameraReady();
+    let shots = 0;
+    wx.createCameraContext = () => ({
+      takePhoto: (o) => {
+        shots++;
+        setTimeout(
+          () => o.success({ tempImagePath: "wxfile://camera-tmp.jpg" }),
+          5,
+        );
+      },
+    });
+    await Promise.all([p.capture(), p.capture()]);
+    assert.equal(shots, 1);
+    assert.equal(p.data.preview, "wxfile://camera-tmp.jpg");
+    assert.equal(p.data.needsAccount, true);
+    assert.equal(p.pending.slot, "dinner");
+    await p.refresh();
+    assert.equal(p.data.preview, "wxfile://camera-tmp.jpg");
+    await service.loginDemo();
+    await service.saveProfile({
+      nickname: "拍照轻友",
+      city: "温州",
+      height: 165,
+      targetWeight: 55,
+    });
+    wx.env = { USER_DATA_PATH: "/owned" };
+    wx.getFileSystemManager = () => ({ copyFile: (o) => o.success() });
+    await p.refresh();
+    await p.retryRecognition();
+    assert.equal(p.data.result.slot, "dinner");
+    assert.equal((await service.getDiary(p.data.result.date)).meals.length, 1);
+    assert.equal(p.pending, null);
+    let sourceTypes;
+    wx.chooseMedia = (o) => {
+      sourceTypes = o.sourceType;
+      o.fail({ errMsg: "chooseMedia:fail cancel" });
+    };
+    await p.choose();
+    assert.deepEqual(sourceTypes, ["album"]);
+    p.onCameraError();
+    assert.equal(p.data.cameraReady, false);
+    assert.equal(p.data.cameraActive, false);
+    const manual = loadPage("records");
+    manual.onLoad({ type: "meal", slot: "dinner" });
+    assert.equal(manual.data.slotIndex, 2);
+  } finally {
+    saved = previous;
+    global.wx = oldWx;
+  }
+});
 test("forum tabs, map city and mine interaction lists use separate state", async () => {
   const previous = saved,
     oldWx = { ...wx };

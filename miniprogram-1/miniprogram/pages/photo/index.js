@@ -1,5 +1,10 @@
-const { page, service, errorMessage } = require("../../utils/page");
-const { chooseFoodImage, persistFoodImage } = require("../../utils/media");
+const { page, service, errorMessage, navigate } = require("../../utils/page");
+const {
+  chooseFoodImage,
+  persistFoodImage,
+  takeFoodPhoto,
+} = require("../../utils/media");
+const { mealSlot } = require("../../services/membership");
 const slots = {
   breakfast: "早餐",
   lunch: "午餐",
@@ -19,9 +24,19 @@ page({
     result: null,
     photoError: "",
     slotLabel: "",
+    cameraActive: true,
+    cameraReady: false,
+    cameraError: "",
+    selectedSlot: mealSlot(Date.now()),
+    mealSlots: Object.keys(slots).map((id) => ({ id, label: slots[id] })),
+    showAccess: false,
+    needsAccount: false,
   },
-  onLoad(query) {
-    this.setData({ planId: query.planId || "" });
+  onLoad(query = {}) {
+    this.setData({
+      planId: query.planId || "",
+      selectedSlot: slots[query.slot] ? query.slot : mealSlot(Date.now()),
+    });
   },
   refresh() {
     return this.loadData(async () => {
@@ -36,28 +51,120 @@ page({
           ? await service.getMembership()
           : { remaining: 0, dailyLimit: 0 },
       });
-      if (!s.signedIn) {
+      if (!s.signedIn && !(this.pending && this.pending.guest)) {
+        const hadPreview = !!this.data.preview;
         this.pending = null;
-        this.setData({ preview: "", result: null, photoError: "" });
+        this.setData({
+          preview: "",
+          result: null,
+          photoError: "",
+          needsAccount: false,
+          ...(hadPreview ? { cameraActive: true, cameraReady: false } : {}),
+        });
+      } else if (
+        s.signedIn &&
+        s.profile.city &&
+        this.pending &&
+        this.data.needsAccount
+      ) {
+        this.setData({
+          needsAccount: false,
+          photoError: "照片已准备好，点击“识别并保存”继续。",
+        });
       }
     });
   },
   choose() {
-    this.action(async () => {
-      if (!(await this.requireAccount())) return;
-      const path = await chooseFoodImage(wx);
+    return this.action(async () => {
+      const path = await chooseFoodImage(wx, ["album"]);
       if (!path) return;
-      this.pending = {
-        requestId:
-          "photo-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
-        tempFilePath: path,
-      };
-      this.setData({ preview: path, result: null, photoError: "" });
-      await this.processPending();
+      await this.acceptImage(path);
     });
   },
+  capture() {
+    if (this.data.preview) {
+      this.retake();
+      return;
+    }
+    return this.action(async () => {
+      if (!this.data.cameraReady) throw Error("相机尚未就绪，请稍后重试");
+      const path = await takeFoodPhoto(wx);
+      await this.acceptImage(path);
+    });
+  },
+  async acceptImage(path) {
+    const snapshot = await service.getSnapshot();
+    this.pending = {
+      requestId:
+        "photo-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+      tempFilePath: path,
+      slot: this.data.selectedSlot,
+      guest: !snapshot.signedIn,
+    };
+    this.setData({
+      preview: path,
+      result: null,
+      photoError: "",
+      cameraReady: false,
+    });
+    if (!snapshot.signedIn || !snapshot.profile.city) {
+      this.setData({
+        needsAccount: true,
+        photoError: "照片已拍好，登录并确认城市后即可识别保存。",
+      });
+      return;
+    }
+    await this.processPending();
+  },
+  onCameraReady() {
+    this.setData({ cameraReady: true, cameraError: "" });
+  },
+  onCameraError() {
+    this.setData({
+      cameraReady: false,
+      cameraActive: false,
+      cameraError: "无法打开相机，请检查相机权限，也可以从相册选图。",
+    });
+  },
+  onCameraStop() {
+    this.setData({
+      cameraReady: false,
+      cameraActive: false,
+      cameraError: "相机已暂停，点击重新打开。",
+    });
+  },
+  restartCamera() {
+    this.setData({ cameraError: "", cameraActive: true, cameraReady: false });
+  },
+  cameraSettings() {
+    wx.openSetting({});
+  },
+  retake() {
+    if (this.data.busy) return;
+    this.pending = null;
+    this.setData({
+      preview: "",
+      result: null,
+      photoError: "",
+      needsAccount: false,
+      cameraError: "",
+      cameraReady: false,
+      cameraActive: true,
+    });
+  },
+  selectSlot(e) {
+    const slot = e.currentTarget.dataset.slot;
+    if (slots[slot] && !this.data.busy && !this.data.preview)
+      this.setData({ selectedSlot: slot });
+  },
+  manualRecord() {
+    navigate("/pages/records/index?type=meal&slot=" + this.data.selectedSlot);
+  },
+  toggleAccess() {
+    this.setData({ showAccess: !this.data.showAccess });
+  },
   retryRecognition() {
-    this.action(async () => {
+    return this.action(async () => {
       if (!(await this.requireAccount())) return;
       await this.processPending();
     });
@@ -71,12 +178,15 @@ page({
       const result = await service.recognizeMeal({
         imagePath: p.imagePath,
         requestId: p.requestId,
+        slot: p.slot,
       });
       this.setData({
         result,
         preview: p.imagePath,
         photoError: "",
         slotLabel: slots[result.slot],
+        selectedSlot: result.slot,
+        needsAccount: false,
       });
       if (this.data.planId) {
         try {
@@ -119,7 +229,15 @@ page({
   deleteMeal() {
     this.action(async () => {
       await service.deleteRecord(this.data.result.recordId);
-      this.setData({ result: null, preview: "" });
+      this.pending = null;
+      this.setData({
+        result: null,
+        preview: "",
+        photoError: "",
+        cameraError: "",
+        cameraReady: false,
+        cameraActive: true,
+      });
       wx.showToast({ title: "已删除，额度不返还", icon: "none" });
     });
   },

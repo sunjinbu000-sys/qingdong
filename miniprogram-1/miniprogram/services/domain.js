@@ -322,6 +322,8 @@ function createDomain({ store, now = Date.now }) {
           input.imagePath.length > 1000
         )
           throw new Error("请先保存一张食物照片");
+        const slot = input.slot || mealSlot(now());
+        if (!SLOTS.includes(slot)) throw Error("请选择有效餐次");
         const m = membershipView(s, today());
         growthHooks.assertRecognition(s);
         const usesMember = !!m.activeGrant && m.remaining > 0;
@@ -333,7 +335,6 @@ function createDomain({ store, now = Date.now }) {
             ? "membership+" + growthHooks.consumeRecognition(s, requestId)
             : "membership"
           : growthHooks.consumeRecognition(s, requestId);
-        const slot = mealSlot(now());
         const record = {
           id: id("record"),
           userId,
