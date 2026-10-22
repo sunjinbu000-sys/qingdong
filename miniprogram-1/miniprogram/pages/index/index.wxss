@@ -28,8 +28,11 @@
 .checkin-slogan .hero-title{margin:0 0 10rpx;max-width:none}
 .checkin-slogan .hero-desc{max-width:none}
 
-.welcome-body{display:flex;align-items:center;gap:22rpx}
-.welcome-body .welcome-copy{flex:1;min-width:0}
-.welcome-body .check-ring{width:144rpx;height:144rpx;border-width:10rpx;flex-shrink:0}
-.welcome-body .check-ring .number{font-size:42rpx}
-.welcome-body .check-ring .label{font-size:17rpx;white-space:nowrap}
+.welcome{display:flex;align-items:flex-start;gap:22rpx}
+.welcome-main{flex:1;min-width:0}
+.welcome-checkin{display:flex;flex-direction:column;align-items:center;gap:12rpx;flex-shrink:0;padding-top:6rpx;width:144rpx}
+.welcome-checkin .check-ring{width:144rpx;height:144rpx;border-width:10rpx;flex-shrink:0}
+.welcome-checkin .check-ring .number{font-size:42rpx}
+.welcome-checkin .check-ring .label{font-size:17rpx;white-space:nowrap}
+.page .welcome-checkin-button{width:100%;min-width:0;padding:8rpx 0;line-height:1.5;border-radius:24rpx;background:#e7efdf;color:#32664f;font-size:23rpx;font-weight:600}
+.welcome-checkin-button[disabled]{opacity:.65}
