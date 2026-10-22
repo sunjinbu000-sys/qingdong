@@ -1,3 +1,15 @@
 .welcome{padding-top:32rpx}.green{color:#1d6651}.checkin-hero .hero-title{font-size:31rpx;max-width:360rpx}.checkin-hero .hero-desc{font-size:22rpx;max-width:330rpx}.checkin-hero .hero-bottom .small-text{font-size:19rpx;max-width:150rpx}.checkin-hero .btn{padding:20rpx 26rpx;font-size:25rpx}.photo-entry{border:1rpx solid #dce6d3;background:#f0f4e7;border-radius:28rpx;padding:26rpx}.photo-entry .icon-box{background:#e2ebcf}.photo-bottom{display:flex;justify-content:space-between;margin-top:23rpx;padding-top:18rpx;border-top:1rpx solid #dce5d0;color:#738c5f;font-size:20rpx}.activity-preview{padding:24rpx}.activity-preview .title{font-size:26rpx}.activity-preview .small-text{font-size:20rpx}.rank-entry{background:#eaf0df;padding:25rpx;border-radius:23rpx}.rank-entry .title{font-size:26rpx}.mock-note{margin-top:32rpx;font-size:19rpx;color:#9aa58e;text-align:center}
 
-.welcome{padding-top:16rpx}.home-greeting{font-size:38rpx;line-height:1.55;overflow-wrap:break-word;margin-top:0;margin-bottom:18rpx}.welcome-copy{color:#82917b;font-size:25rpx;line-height:1.95}.home-camera{background:#e8f0dc;border-color:#d9e4c9;padding:30rpx}.home-camera .title{font-size:36rpx;color:#204f3c}.home-camera .icon-box{background:#d8e7bf}.home-location{margin-top:26rpx}
+.welcome{padding-top:16rpx}.home-greeting{font-size:38rpx;line-height:1.55;overflow-wrap:break-word;margin-top:0;margin-bottom:18rpx}.welcome-copy{color:#82917b;font-size:25rpx;line-height:1.95}.home-location{margin-top:26rpx}
+
+.home-camera{position:relative;height:420rpx;overflow:hidden;border-radius:44rpx;background:linear-gradient(115deg,#eee7ff 0%,#ddd3ff 48%,#c9c1ff 100%);isolation:isolate}
+.nutrition-copy{position:relative;z-index:2;padding:52rpx 40rpx 0;pointer-events:none}
+.nutrition-kicker{font-size:17rpx;letter-spacing:1rpx;color:#6655a3;font-weight:600;margin-bottom:16rpx}
+.nutrition-title{color:#303761;font-size:50rpx;font-weight:750;line-height:1.15;letter-spacing:1rpx}
+.nutrition-subtitle{color:#81739e;font-size:22rpx;line-height:1.5;margin-top:18rpx;max-width:350rpx}
+.nutrition-art{position:absolute;z-index:1;right:-5rpx;top:6rpx;width:354rpx;height:354rpx;pointer-events:none}
+.nutrition-wave{position:absolute;left:-10%;width:120%;height:90rpx;border-radius:50%;pointer-events:none}
+.nutrition-wave-back{bottom:50rpx;transform:rotate(-5deg);background:linear-gradient(180deg,#ffffff80,#ffffff08);box-shadow:0 -10rpx 0 #ffffff40;z-index:0}
+.nutrition-wave-front{bottom:-10rpx;left:-20%;width:140%;height:75rpx;transform:rotate(3deg);background:linear-gradient(180deg,#f3eaff80,#bba7ef50);z-index:1}
+.home-camera .camera-cta{position:absolute;z-index:3;left:40rpx;right:40rpx;bottom:44rpx;width:calc(100% - 80rpx);min-width:0;height:72rpx;min-height:0;padding:0 18rpx;display:flex;align-items:center;justify-content:center;gap:12rpx;line-height:1.4;border-radius:40rpx;background:linear-gradient(100deg,#947df2,#7660d7);color:#fff;font-size:26rpx;font-weight:650;box-shadow:0 14rpx 28rpx #8b6bd63d}
+.camera-cta-icon{width:28rpx;height:28rpx;flex-shrink:0}
