@@ -13,3 +13,7 @@
 .nutrition-wave-front{bottom:-10rpx;left:-20%;width:140%;height:75rpx;transform:rotate(3deg);background:linear-gradient(180deg,#f3eaff80,#bba7ef50);z-index:1}
 .home-camera .camera-cta{position:absolute;z-index:3;left:40rpx;right:40rpx;bottom:44rpx;width:calc(100% - 80rpx);min-width:0;height:72rpx;min-height:0;padding:0 18rpx;display:flex;align-items:center;justify-content:center;gap:12rpx;line-height:1.4;border-radius:40rpx;background:linear-gradient(100deg,#947df2,#7660d7);color:#fff;font-size:26rpx;font-weight:650;box-shadow:0 14rpx 28rpx #8b6bd63d}
 .camera-cta-icon{width:28rpx;height:28rpx;flex-shrink:0}
+
+.page .home-shortcuts{grid-template-columns:repeat(4,minmax(0,1fr));gap:12rpx}
+.page .home-shortcuts .full-shortcut{width:100%;min-width:0;min-height:166rpx;box-sizing:border-box;padding:16rpx 4rpx 14rpx;border-radius:40rpx;background:#fff;color:#30395d;gap:8rpx;font-size:22rpx;line-height:1.4}
+.shortcut-illustration{display:block;width:94rpx;height:94rpx;flex-shrink:0}
