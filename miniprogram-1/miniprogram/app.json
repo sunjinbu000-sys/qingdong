@@ -85,6 +85,12 @@
         "selectedIconPath": "images/nav/health-active.png"
       },
       {
+        "pagePath": "pages/forum/index",
+        "text": "轻友论坛",
+        "iconPath": "images/nav/forum.png",
+        "selectedIconPath": "images/nav/forum-active.png"
+      },
+      {
         "pagePath": "pages/challenges/index",
         "text": "挑战",
         "iconPath": "images/nav/challenges.png",

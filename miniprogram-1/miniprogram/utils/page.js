@@ -14,6 +14,7 @@ function navigate(url) {
   const tabs = [
     "/pages/index/index",
     "/pages/health/index",
+    "/pages/forum/index",
     "/pages/challenges/index",
     "/pages/profile/index",
   ];
