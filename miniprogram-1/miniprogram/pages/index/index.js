@@ -1,4 +1,5 @@
 const { page, service, navigate } = require("../../utils/page");
+const { timeGreeting } = require("../../utils/date");
 page({
   data: {
     snapshot: { profile: {}, activities: [] },
@@ -21,7 +22,6 @@ page({
   refresh() {
     return this.loadData(async () => {
       const snapshot = await service.getSnapshot();
-      const hour = (new Date().getUTCHours() + 8) % 24;
       const [banners, events, hub] = await Promise.all([
         service.getHomeBanners(),
         service.listEvents(),
@@ -33,7 +33,7 @@ page({
         browse: hub.browse,
         platform: await service.getPlatformSettings(),
         snapshot,
-        greeting: hour < 11 ? "早上好" : hour < 18 ? "下午好" : "晚上好",
+        greeting: timeGreeting(),
       });
     });
   },
