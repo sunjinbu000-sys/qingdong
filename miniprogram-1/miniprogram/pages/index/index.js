@@ -4,6 +4,7 @@ page({
   data: {
     snapshot: { profile: {}, activities: [] },
     greeting: "你好",
+    nutritionLedger: { intake: "0.00", exercise: "0.00", remaining: "—", protein: "—", carb: "—", fat: "—" },
     banners: [],
     events: [],
     browse: { city: "温州", month: "" },
@@ -27,7 +28,19 @@ page({
         service.listEvents(),
         service.getFeatureHub(),
       ]);
+      const overview = snapshot.signedIn
+        ? await service.getNutritionOverview(snapshot.date)
+        : null;
+      const nutritionLedger = overview ? {
+        intake: Number(overview.nutrition.calories).toFixed(2),
+        exercise: Number(overview.exerciseCalories).toFixed(2),
+        remaining: Number(overview.remaining).toFixed(2),
+        protein: String(overview.nutrition.protein),
+        carb: String(overview.nutrition.carb),
+        fat: String(overview.nutrition.fat),
+      } : { intake: "0.00", exercise: "0.00", remaining: "—", protein: "—", carb: "—", fat: "—" };
       this.setData({
+        nutritionLedger,
         banners,
         events: events.slice(0, 3),
         browse: hub.browse,
