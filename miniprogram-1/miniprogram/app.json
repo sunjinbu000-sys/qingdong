@@ -99,6 +99,8 @@
     ]
   },
   "sitemapLocation": "sitemap.json",
+  "permission": { "scope.userLocation": { "desc": "用于在轻友论坛确认所在城市，筛选本地公开文章" } },
+  "requiredPrivateInfos": ["chooseLocation"],
   "style": "v2",
   "lazyCodeLoading": "requiredComponents"
 }

@@ -20,6 +20,98 @@ global.wx = {
   getSystemInfoSync: () => ({ platform: "android", windowWidth: 390 }),
 };
 global.getCurrentPages = () => [{}];
+test("forum tabs, map city and mine interaction lists use separate state", async () => {
+  const previous = saved,
+    oldWx = { ...wx };
+  saved = undefined;
+  try {
+    const service = require("../miniprogram-1/miniprogram/services/index");
+    await service.loginDemo();
+    await service.saveProfile({
+      nickname: "测试轻友",
+      city: "杭州",
+      height: 165,
+      targetWeight: 55,
+    });
+    const forum = loadPage("forum");
+    await forum.refresh();
+    assert.deepEqual(
+      forum.data.tabs.map((t) => t.label),
+      ["推荐", "本地", "全国", "最新", "我的"],
+    );
+    await forum.changeTab({ currentTarget: { dataset: { id: "local" } } });
+    assert.equal(forum.data.region, null);
+    assert.equal(forum.data.posts.length, 0);
+    wx.chooseLocation = (o) =>
+      o.success({
+        address: "浙江省温州市鹿城区",
+        latitude: 28,
+        longitude: 120,
+      });
+    await forum.locate();
+    assert.equal(forum.data.region.city, "温州");
+    assert.equal((await service.getSnapshot()).profile.city, "杭州");
+    assert.equal(forum.data.posts.length, 0);
+    await service.likeForumPost("forum-demo-1");
+    await service.commentForumPost("forum-demo-1", "留下健康生活的一条评论");
+    await forum.changeTab({ currentTarget: { dataset: { id: "mine" } } });
+    for (const id of ["liked", "commented"]) {
+      await forum.changeMine({ currentTarget: { dataset: { id } } });
+      assert.equal(forum.data.posts[0].id, "forum-demo-1");
+    }
+  } finally {
+    saved = previous;
+    global.wx = oldWx;
+  }
+});
+test("native composer requires category and never publishes before human approval", async () => {
+  const previous = saved,
+    oldWx = { ...wx };
+  saved = undefined;
+  try {
+    const service = require("../miniprogram-1/miniprogram/services/index");
+    await service.loginDemo();
+    await service.saveProfile({
+      nickname: "测试轻友",
+      city: "杭州",
+      height: 165,
+      targetWeight: 55,
+    });
+    const editor = loadPage("forum-editor");
+    editor.setData({ text: "今天认真记录自己的生活" });
+    let toast = "";
+    wx.showToast = (o) => {
+      toast = o.title;
+    };
+    await editor.save({ currentTarget: { dataset: {} } });
+    assert.match(toast, /分类/);
+    assert.equal((await service.listForumPosts({ mode: "mine" })).length, 0);
+    editor.setData({ kind: "运动打卡" });
+    await editor.save({ currentTarget: { dataset: {} } });
+    const post = (await service.listForumPosts({ mode: "mine" }))[0];
+    assert.equal(post.status, "pending");
+    assert.equal(post.kind, "运动打卡");
+    assert.ok(
+      !(await service.listForumPosts({ feed: "latest" })).some(
+        (p) => p.id === post.id,
+      ),
+    );
+    await service.setDemoRole("hq");
+    await service.moderateForumPost(
+      post.id,
+      "approved",
+      "文字及图片全部审核通过",
+    );
+    assert.ok(
+      (await service.listForumPosts({ feed: "latest" })).some(
+        (p) => p.id === post.id,
+      ),
+    );
+  } finally {
+    saved = previous;
+    global.wx = oldWx;
+  }
+});
 test("weight evidence photos use owned files, cancel safely and preserve previous evidence on save failure", async () => {
   const page = loadPage("weight");
   const old = { ...global.wx };

@@ -1,1 +1,26 @@
-<view class="page"><view wx:if="{{error}}" class="card">{{error}}<button bindtap="retry">重试</button></view><view class="card"><button data-key="sort" data-value="hot" bindtap="option">热门</button><button data-key="sort" data-value="new" bindtap="option">最新</button><button data-key="sameCity" data-value="{{!sameCity}}" bindtap="option">{{sameCity?'全部城市':'同城'}}</button><button wx:for="{{['','生活分享','饮食打卡','运动打卡','小队打卡']}}" wx:key="*this" data-key="kind" data-value="{{item}}" bindtap="option">{{item||'全部分类'}}</button><button data-mode="public" bindtap="filter">公开</button><button data-mode="mine" bindtap="filter">我的</button><button data-mode="draft" bindtap="filter">草稿</button><button data-url="/pages/forum-editor/index" bindtap="go">发布图文</button></view><view class="card" wx:for="{{posts}}" wx:key="id"><button data-url="/pages/forum-detail/index?id={{item.id}}" bindtap="go">{{item.title||item.kind}} · {{statusLabels[item.status] || item.status}}</button><view>{{item.author}} · {{item.city}}</view><view>{{item.text}}</view><image wx:for="{{item.images}}" wx:for-item="src" wx:key="*this" src="{{src}}"/><view>赞 {{item.likeCount}} · 收藏 {{item.favoriteCount}}</view></view><view wx:if="{{!posts.length}}" class="card">暂无帖子</view></view>
+<view class="page forum-page">
+  <view class="forum-header">
+    <view class="eyebrow">SHARE A LITTLE EVERY DAY</view>
+    <view class="forum-heading">生活里的轻动，和你一起。</view>
+    <view class="forum-tabs"><button wx:for="{{tabs}}" wx:key="id" class="forum-tab {{tab===item.id?'is-active':''}}" data-id="{{item.id}}" bindtap="changeTab">{{item.label}}</button></view>
+  </view>
+  <view wx:if="{{tab==='mine'}}" class="mine-tabs"><button wx:for="{{mineTabs}}" wx:key="id" class="mine-tab {{mine===item.id?'is-active':''}}" data-id="{{item.id}}" bindtap="changeMine">{{item.label}}</button></view>
+  <view wx:if="{{tab==='local'}}" class="card region-card">
+    <view class="row"><view><view class="title">{{region?region.label:'还没有定位城市'}}</view><text class="caption">{{region?'只看这个城市的公开文章':'在地图中确认当前位置，按城市查看本地内容'}}</text></view><button class="location-button" bindtap="locate" disabled="{{busy}}">{{region?'重新定位':'定位本地'}}</button></view>
+    <view wx:if="{{locationError}}" class="error-inline">{{locationError}}</view>
+  </view>
+  <view wx:if="{{loading}}" class="feed-message">正在加载文章…</view>
+  <view wx:elif="{{error}}" class="card feed-message">{{error}}<button bindtap="retry">重新加载</button></view>
+  <view wx:elif="{{tab==='mine'&&!signedIn}}" class="card feed-message">登录后查看你的文章和互动记录<button class="btn mt" data-url="/pages/account/index" bindtap="go">去登录</button></view>
+  <block wx:else>
+    <view wx:if="{{!posts.length && (tab!=='local'||region)}}" class="card feed-empty"><view class="empty-mark">✧</view><view>{{emptyText}}</view></view>
+    <view wx:for="{{posts}}" wx:key="id" class="card post-card">
+      <view class="row"><view class="author-name">{{item.author}}</view><text class="post-meta">{{item.city}} · {{item.date}}</text></view>
+      <view class="post-category">{{item.kind}}<text wx:if="{{tab==='mine'&&mine==='mine'}}" class="post-status"> · {{statusLabels[item.status]||item.status}}</text></view>
+      <view data-url="/pages/forum-detail/index?id={{item.id}}" bindtap="go"><view wx:if="{{item.title}}" class="post-title">{{item.title}}</view><view class="post-content">{{item.text}}</view></view>
+      <view wx:if="{{item.images.length}}" class="post-images"><image wx:for="{{item.images}}" wx:for-item="src" wx:key="*this" mode="aspectFill" src="{{src}}" data-current="{{src}}" data-images="{{item.images}}" bindtap="preview"/></view>
+      <view class="post-footer"><text>{{item.likeCount}} 赞 · {{item.comments.length}} 评论</text><button class="read-post" data-url="/pages/forum-detail/index?id={{item.id}}" bindtap="go">{{item.status==='draft'?'查看草稿':'查看文章'}} ›</button></view>
+    </view>
+  </block>
+</view>
+<view class="forum-compose-bar"><button class="forum-publish" bindtap="publish">＋ 发布</button></view>

@@ -51,6 +51,64 @@ test("private pending, moderation, interactions, edit and forbidden word", () =>
   api.editForumPost(p.id, { text: "修改后继续健康饮食" });
   a.equal(api.listForumPosts().length, 1);
 });
+
+test("forum feeds separate recommendations, location and private interaction lists", () => {
+  const { api, s } = fixture();
+  const pending = api.createForumPost({
+    text: "审核后才可以公开的文章",
+    kind: "生活分享",
+  });
+  a.equal(
+    api
+      .listForumPosts({ feed: "recommended" })
+      .some((p) => p.id === pending.id),
+    false,
+  );
+  a.equal(api.listForumPosts({ feed: "local" }).length, 0);
+  api.saveForumRegion({ city: "温州市", district: "鹿城区", source: "map" });
+  a.equal(api.getForumRegion().city, "温州");
+  a.equal(s.profile.city, "杭州");
+  a.equal(api.listForumPosts({ feed: "local" }).length, 0);
+  api.saveForumRegion({ city: "杭州市", source: "map" });
+  a.equal(api.listForumPosts({ feed: "local" }).length, 1);
+  api.likeForumPost("forum-demo-1");
+  api.commentForumPost("forum-demo-1", "这是我评论过的文章");
+  a.deepEqual(
+    api.listForumPosts({ mode: "liked" }).map((p) => p.id),
+    ["forum-demo-1"],
+  );
+  a.deepEqual(
+    api.listForumPosts({ mode: "commented" }).map((p) => p.id),
+    ["forum-demo-1"],
+  );
+  a.equal(
+    api.listForumPosts({ mode: "mine" }).some((p) => p.id === pending.id),
+    true,
+  );
+  s.full.role = "hq";
+  api.moderateForumPost(pending.id, "approved", "文字图片审核通过");
+  a.equal(
+    api
+      .listForumPosts({ feed: "recommended" })
+      .some((p) => p.id === pending.id),
+    false,
+  );
+  api.recommendForumPost(pending.id);
+  a.equal(
+    api
+      .listForumPosts({ feed: "recommended" })
+      .some((p) => p.id === pending.id),
+    true,
+  );
+  api.editForumPost("forum-demo-1", {
+    text: "内容修改后需要重新审核",
+    kind: "运动打卡",
+  });
+  a.equal(api.listForumPosts({ mode: "liked" }).length, 0);
+  a.equal(api.listForumPosts({ mode: "commented" }).length, 0);
+  s.session = null;
+  a.throws(() => api.listForumPosts({ mode: "liked" }), /登录/);
+});
 test("word imports validate atomically and dedupe", () => {
   const { api, s } = fixture();
   s.full = { role: "hq" };

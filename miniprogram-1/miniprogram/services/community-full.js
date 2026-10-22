@@ -125,8 +125,9 @@ function createCommunityDomain(c) {
     favorited: p.favorites.includes(uid(s)),
     likeCount: p.likes.length,
     favoriteCount: p.favorites.length,
-    audit: p.userId === uid(s) || s.full.role === "hq" ? p.audit : [],
-    reports: s.full.role === "hq" ? p.reports : [],
+    audit:
+      p.userId === uid(s) || (uid(s) && s.full.role === "hq") ? p.audit : [],
+    reports: uid(s) && s.full.role === "hq" ? p.reports : [],
     comments: p.comments
       .filter((x) => x.status === "approved" || x.userId === uid(s))
       .map((comment) => ({
@@ -174,10 +175,29 @@ function createCommunityDomain(c) {
     };
   };
   const api = {
+    getForumRegion() {
+      return init(c.read()).localRegion || null;
+    },
+    saveForumRegion(region) {
+      return c.change((s) => {
+        if (
+          !region ||
+          region.source !== "map" ||
+          !String(region.city || "").trim()
+        )
+          throw Error("请在地图中确认定位城市");
+        const city = String(region.city).trim().replace(/市$/, "");
+        if (!/^[\u3400-\u9fff·]{2,20}$/.test(city))
+          throw Error("定位城市无效，请重新定位");
+        const value = { city, label: city + "市", source: "map" };
+        init(s).localRegion = value;
+        return value;
+      });
+    },
     listForumPosts(options = {}) {
       const s = c.read(),
         d = init(s);
-      if (options.mode === "mine" || options.mode === "draft")
+      if (["mine", "draft", "liked", "commented"].includes(options.mode))
         c.requireLogin(s);
       return d.posts
         .filter((p) =>
@@ -185,24 +205,48 @@ function createCommunityDomain(c) {
             ? p.userId === uid(s) && p.status !== "deleted"
             : options.mode === "draft"
               ? p.userId === uid(s) && p.status === "draft"
-              : visible(s, p),
+              : options.mode === "liked"
+                ? visible(s, p) && p.likes.includes(uid(s))
+                : options.mode === "commented"
+                  ? visible(s, p) &&
+                    p.comments.some(
+                      (x) => x.userId === uid(s) && x.status === "approved",
+                    )
+                  : visible(s, p),
+        )
+        .filter((p) => options.feed !== "recommended" || p.recommended === true)
+        .filter(
+          (p) =>
+            options.feed !== "local" ||
+            (!!d.localRegion &&
+              String(p.city).replace(/市$/, "") === d.localRegion.city),
         )
         .filter((p) => !options.kind || p.kind === options.kind)
         .filter((p) => !options.city || p.city === options.city)
-        .sort((a, b) =>
-          options.sort === "hot"
-            ? b.likes.length +
-              b.comments.length -
-              a.likes.length -
-              a.comments.length
-            : String(b.createdAt).localeCompare(a.createdAt),
-        )
+        .sort((a, b) => {
+          const timestamp = (p) =>
+            typeof p.createdAt === "number"
+              ? p.createdAt
+              : Date.parse(p.createdAt) || 0;
+          const score = (p) =>
+            p.likes.length +
+            p.comments.filter((x) => x.status === "approved").length;
+          return (
+            (options.sort === "hot" ? score(b) - score(a) : 0) ||
+            timestamp(b) - timestamp(a) ||
+            b.id.localeCompare(a.id)
+          );
+        })
         .map((p) => view(s, p));
     },
     getForumPost(id) {
       const s = c.read(),
         p = find(s, id);
-      if (!visible(s, p) && p.userId !== uid(s) && s.full.role !== "hq")
+      if (
+        !visible(s, p) &&
+        p.userId !== uid(s) &&
+        !(uid(s) && s.full.role === "hq")
+      )
         throw Error("帖子尚未公开");
       return view(s, p);
     },
@@ -218,7 +262,7 @@ function createCommunityDomain(c) {
           id: c.id("post"),
           userId,
           nickname: s.profile.nickname,
-          city: s.profile.city,
+          city: d.localRegion ? d.localRegion.city : s.profile.city,
           date: c.today(),
           createdAt: c.now(),
           status: v.draft ? "draft" : "pending",
