@@ -532,3 +532,18 @@ test("no-quota recognition retains the photo and only completed rewarded video c
     ended = true; await p.watchAndRecognize(); assert.equal(recognized, 1); assert.equal(p.data.screen, "capture");
   } finally { Object.assign(service, originals); saved = previous; global.wx = oldWx; }
 });
+
+test("membership selection retains catalog prices and requires service agreement before purchase", async () => {
+  const p = loadPage("membership");
+  await p.refresh();
+  assert.equal(p.data.selectedPlanId, p.data.plans[0].id);
+  assert.equal(p.data.agreed, false);
+  const last = p.data.plans[p.data.plans.length - 1];
+  p.selectPlan({currentTarget:{dataset:{id:last.id}}});
+  await p.refresh();
+  assert.equal(p.data.selectedPlanId, last.id);
+  p.agreementChanged({detail:{value:["agree"]}});
+  assert.equal(p.data.agreed, true);
+  p.agreementChanged({detail:{value:[]}});
+  assert.equal(p.data.agreed, false);
+});
