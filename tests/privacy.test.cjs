@@ -58,3 +58,20 @@ test("write errors preserve prior privacy and reset state", () => {
   assert.throws(() => d.resetDemo(), /存储/);
   assert.equal(d.getSnapshot().signedIn, true);
 });
+
+test("health export and confirmed deletion affect only the signed-in user's diary", () => {
+  const f = setup(), d = f.domain;
+  f.login();
+  d.saveRecord({ type: "weight", date: "2026-10-21", kg: 60 });
+  const state = f.store.read();
+  state.records.push({ id: "other-weight", userId: "other-user", type: "weight", date: "2026-10-21", kg: 80 });
+  f.store.write(state);
+  assert.equal(d.exportHealthRecords().length, 1);
+  assert.throws(() => d.deleteHealthRecords(""), /确认删除/);
+  assert.equal(d.exportHealthRecords().length, 1);
+  d.deleteHealthRecords("确认删除");
+  assert.equal(d.exportHealthRecords().length, 0);
+  assert(f.store.read().records.some(r => r.id === "other-weight"));
+  d.logout();
+  assert.throws(() => d.exportHealthRecords(), /登录/);
+});

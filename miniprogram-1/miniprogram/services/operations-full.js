@@ -558,6 +558,18 @@ function createOperationsDomain(c) {
         .slice()
         .reverse();
     },
+    exportHealthRecords() {
+      const s = read(), u = requireLogin(s);
+      return s.records.filter(r => r.userId === u).map(r => ({ ...r }));
+    },
+    deleteHealthRecords(confirmation) {
+      return change(s => {
+        const u = requireLogin(s);
+        if (confirmation !== "确认删除") throw Error("请输入确认删除");
+        s.records = s.records.filter(r => r.userId !== u);
+        return { deleted: true };
+      });
+    },
     getWeightTrend() {
       const s = read(), u = requireLogin(s), f = full(s);
       return {

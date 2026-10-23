@@ -402,3 +402,20 @@ test("weight trend limits actual points to the chosen range and keeps latest wei
   assert.equal(p.data.points.length, 2);
   assert.equal(p.data.lines.length, 1);
 });
+
+test("calendar reminder requests a daily system event with seconds timestamp", async () => {
+  const original = wx.addPhoneRepeatCalendar;
+  let options;
+  wx.addPhoneRepeatCalendar = o => { options = o; o.success({}); };
+  try {
+    const p = loadPage("privacy");
+    p.setData({ reminderTime: "10:00" });
+    await p.addCalendar();
+    assert.equal(options.repeatInterval, "day");
+    assert.equal(options.alarm, true);
+    assert(options.startTime > Date.now() / 1000);
+    assert(options.startTime < Date.now() / 1000 + 86401);
+    assert.equal(new Date(options.startTime * 1000).getHours(), 10);
+    assert.equal(options.endTime - options.startTime, 300);
+  } finally { wx.addPhoneRepeatCalendar = original; }
+});
