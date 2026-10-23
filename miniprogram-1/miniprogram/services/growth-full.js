@@ -1,3 +1,4 @@
+const { normalizeMealStyle, mealPreset } = require("./meal-styles");
 const { assessPlanGoal } = require("./plan-goal");
 const { membershipView } = require("./membership");
 const add = (d, n) =>
@@ -273,7 +274,7 @@ function createGrowthFullDomain(ctx) {
     ["蛋", "鸡蛋", "egg"],
     ["豆", "大豆", "豆腐", "soy"],
     ["花生", "坚果", "核桃", "nut"],
-    ["小麦", "麸质", "面条", "wheat"],
+    ["小麦", "麦", "麸质", "面条", "面包", "馒头", "wheat", "gluten"],
     ["虾", "蟹", "海鲜", "贝", "fish", "鱼"],
   ];
   function conflicts(v, terms) {
@@ -293,35 +294,34 @@ function createGrowthFullDomain(ctx) {
       .map((x) => String(x).trim())
       .filter(Boolean);
   }
-  function meal(terms, index, slot, minIntake) {
-    const staples = ["米饭", "小米粥", "燕麦粥", "蒸红薯", "玉米"];
-    const proteins = ["清蒸鸡肉", "清蒸鱼", "炖牛肉", "豆腐", "鸡蛋"];
-    const veg = ["西兰花", "胡萝卜", "菠菜", "番茄", "南瓜"];
-    const pick = (pool) => {
-      const safe = pool.filter((x) => !conflicts(x, terms));
-      if (!safe.length)
-        throw Error("限制较多，演示食材不足，请专业人员确认可用食材");
-      return safe[index % safe.length];
+  function meal(terms, index, slot, minIntake, style) {
+    index = index % 63;
+    const preset = mealPreset(style, index, slot);
+    const pick = (pool, stride, offset) => {
+      const safe = pool.filter(x => !conflicts(x, terms));
+      if (!safe.length) throw Error("限制较多，现有常见食材不足，请先确认可用食材");
+      return safe[(index * stride + offset) % safe.length];
     };
     const ingredients = [
-      { name: pick(staples), grams: 200 },
-      { name: pick(proteins), grams: 100 },
-      { name: pick(veg), grams: 200 },
+      { name: pick(preset.staples, 1, 0), grams: slot === "breakfast" ? 180 : 200 },
+      { name: pick(preset.proteins, 2, 1), grams: slot === "breakfast" ? 150 : 100 },
+      { name: pick(preset.vegetables, 3, 2), grams: slot === "breakfast" ? 150 : 200 },
     ];
     const scale = Math.max(1500, minIntake) / 1500;
     ingredients.forEach(item => { item.grams = Math.round(item.grams * scale); });
+    const method = preset.methods[index % preset.methods.length];
     return {
-      slot,
-      title: ingredients.map((x) => x.name).join("＋"),
+      slot, style: preset.id, styleLabel: preset.label,
+      title: ingredients.map(x => x.name).join("＋"),
       ingredients,
       steps: [
-        "食材洗净，蒸煮至熟，少油调味。",
-        "核对食材配料与过敏原；份量仅为演示。",
+        slot === "breakfast" ? "谷薯主食按包装或日常做法熟制；其他食材按类型分别处理，即食食品按标签食用。" : "主食按日常方法做熟；蛋白质食材采用" + method + "，不以油炸为默认做法。",
+        "蔬菜洗净后做熟，水果洗净后食用；保持主食、蛋白质与蔬果搭配。",
+        preset.id === "home" ? "按家庭分餐准备；优先选择附近市场的时令蔬菜与普通食材，调味保持清淡。" : "采用清蒸、炖煮等清淡做法，保留主食，不以不吃饭或极低热量作为减脂方式。",
+        "核对配料与过敏原；份量和营养数值为模拟估算，可按实际商品与食材调整。",
       ],
       kcal: Math.ceil(Math.max(1500, minIntake) / 3),
-      protein: Math.round(28 * scale),
-      carbohydrate: Math.round(65 * scale),
-      fat: Math.round(15 * scale),
+      protein: Math.round(28 * scale), carbohydrate: Math.round(65 * scale), fat: Math.round(15 * scale),
     };
   }
   function profile(s) {
@@ -397,6 +397,7 @@ function createGrowthFullDomain(ctx) {
           userId = ctx.requireCity(s),
           a = f.ai;
         const p = profile(s);
+        const mealStyle = normalizeMealStyle(input.mealStyle);
         const days = integer(
           input.days === undefined ? (p.goalDays || 7) : input.days,
           "计划天数",
@@ -428,7 +429,7 @@ function createGrowthFullDomain(ctx) {
         if (terms.join("").length > 300) throw Error("饮食限制最多300字");
         const result = Array.from({ length: days }, (_, i) => {
           const meals = ["breakfast", "lunch", "dinner"].map((slot, j) =>
-            meal(terms, i + j, slot, calorieBudget),
+            meal(terms, i * 3 + j, slot, calorieBudget, mealStyle),
           );
           return {
             date: add(today(), i),
@@ -450,7 +451,7 @@ function createGrowthFullDomain(ctx) {
           createdAt: now(),
           start: today(),
           end: add(today(), days - 1),
-          request: { days, lossJin: goalAssessment.effectiveLossJin, requestedLossJin: goalAssessment.requestedLossJin, start: input.start, end: input.end },
+          request: { days, mealStyle, lossJin: goalAssessment.effectiveLossJin, requestedLossJin: goalAssessment.requestedLossJin, start: input.start, end: input.end },
           goalAssessment,
           profile: copy(p),
           profileBasis: {
@@ -509,11 +510,13 @@ function createGrowthFullDomain(ctx) {
           index = d && d.meals.findIndex((m) => m.slot === input.slot);
         if (!d || index < 0) throw Error("餐次不存在");
         const next = (d.meals[index].revision || 0) + 1;
+        const dayIndex = Math.round((Date.parse(input.date + "T00:00:00Z") - Date.parse(p.start + "T00:00:00Z")) / 86400000);
         const m = meal(
           p.restrictions,
-          next + index + 1,
+          dayIndex * 3 + index + next * 17,
           input.slot,
-          init(s).ai.config.minIntake,
+          p.profileBasis && p.profileBasis.calorieApplied ? p.profileBasis.calorieGoal : init(s).ai.config.minIntake,
+          (p.request && p.request.mealStyle) || "fatloss",
         );
         consumeAI(s, id("regenerate"), "recipe");
         m.revision = next;

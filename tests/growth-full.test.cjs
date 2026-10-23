@@ -520,3 +520,31 @@ test("large real-life goals never become automatic rapid-loss prescriptions, inv
   for (const invalid of [{ days: 0, lossJin: 3 }, { days: 7, lossJin: -1 }, { days: 7, lossJin: 200 }, { days: 7.5, lossJin: 1 }]) assert.throws(() => a.assessPlanGoal(invalid));
   assert.throws(() => a.generateAIPlan({ days: 90, lossJin: 100, start: "18:00", end: "18:30", allowRecordOnly: true }), /调整目标体重/);
 });
+
+test("meal styles default to fat-loss, support family and mixed menus, and rotate common ingredients", () => {
+  for (const style of [undefined, "home", "mixed"]) {
+    const f = fixture(), a = f.api;
+    const p = a.generateAIPlan({ days: 7, lossJin: 0, start: "18:00", end: "18:30", mealStyle: style });
+    const meals = p.days.flatMap(d => d.meals);
+    assert.equal(p.request.mealStyle, style || "fatloss");
+    assert.equal(meals.length, 21);
+    assert(new Set(meals.map(m => m.title)).size >= 15);
+    assert(meals.every(m => m.ingredients.length === 3));
+    assert(!JSON.stringify(p.days).includes("鸡蛋"));
+    if (style === "mixed") assert.deepEqual([...new Set(meals.map(m => m.style))].sort(), ["fatloss", "home"]);
+    else assert(meals.every(m => m.style === (style || "fatloss")));
+    const next = a.regeneratePlanMeal({ planId: p.id, date: p.days[0].date, slot: "lunch" });
+    const replacement = next.days[0].meals.find(m => m.slot === "lunch");
+    if (style !== "mixed") assert.equal(replacement.style, style || "fatloss");
+    assert.notEqual(replacement.title, p.days[0].meals[1].title);
+  }
+});
+test("unknown meal styles are rejected before charging and wheat restrictions cover staple variants", () => {
+  const f = fixture(), a = f.api;
+  const quota = a.getRecognitionAccess().freeCredits;
+  assert.throws(() => a.generateAIPlan({ days: 7, lossJin: 0, start: "18:00", end: "18:30", mealStyle: "unknown" }), /风格/);
+  assert.equal(a.getRecognitionAccess().freeCredits, quota);
+  const p = a.generateAIPlan({ days: 7, lossJin: 0, start: "18:00", end: "18:30", mealStyle: "home", restrictions: "小麦" });
+  const names = p.days.flatMap(d => d.meals.flatMap(m => m.ingredients.map(x => x.name))).join(" ");
+  assert(!/麦|面条|面包|馒头/.test(names));
+});

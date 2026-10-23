@@ -6,3 +6,5 @@
 .day-nav{width:100%;max-width:100%;overflow-x:auto;box-sizing:border-box}
 
 .plan-goal-assessment{background:#f4effb;border-radius:24rpx;padding:24rpx;color:#917cac;font-size:24rpx;line-height:1.8}.page .plan-extend{width:auto;min-width:0;margin-top:16rpx;border-radius:22rpx;background:#fff;color:#8564c6;padding:15rpx 24rpx;font-size:23rpx;line-height:1.5}
+
+.page .plan-style-select{width:100%;min-width:0;display:flex;justify-content:space-between;gap:16rpx;background:#faf7ff;border:1rpx solid #e5daf4;color:#7f65b5;border-radius:24rpx;padding:22rpx;margin-top:16rpx;font-size:26rpx;line-height:1.5}.plan-style-options{background:#f8f3ff;border-radius:24rpx;padding:8rpx;margin-top:12rpx}.page .plan-style-option{width:100%;min-width:0;background:#fff;text-align:left;border-radius:18rpx;padding:20rpx;margin-bottom:8rpx;font-size:25rpx;color:#78648e;line-height:1.6}.page .plan-style-option.is-selected{background:#eee4ff;color:#7753b5}.plan-style-description{font-size:21rpx;color:#a18caf;margin-top:6rpx}

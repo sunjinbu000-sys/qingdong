@@ -12,6 +12,8 @@ page({
     restrictions: "",
     selected: 0,
     profile: {},
+    mealStyle: "fatloss", mealStyleLabel: "减脂餐", mealStyleOpen: false,
+    mealStyles: [{ id: "fatloss", label: "减脂餐", description: "清淡做法，保留主食，搭配常见蛋白质与蔬果" }, { id: "home", label: "家庭日常", description: "日常易购食材、家常做法，兼顾品类与实用" }, { id: "mixed", label: "混合搭配", description: "家庭日常与减脂餐交替安排，丰富口味" }],
     goalAssessment: null,
     taskTypes: [
       { id: "signin", label: "签到" },
@@ -49,6 +51,8 @@ page({
     this.setData({ [e.currentTarget.dataset.key]: e.detail.value });
     if (["days", "lossJin"].includes(e.currentTarget.dataset.key)) this.assessGoal();
   },
+  toggleMealStyles() { this.setData({ mealStyleOpen: !this.data.mealStyleOpen }); },
+  selectMealStyle(e) { const option = this.data.mealStyles.find(x => x.id === e.currentTarget.dataset.style); if (option) this.setData({ mealStyle: option.id, mealStyleLabel: option.label, mealStyleOpen: false }); },
   async assessGoal() {
     const revision = (this.goalRevision || 0) + 1; this.goalRevision = revision;
     try { const assessment = await service.assessPlanGoal({ days: Number(this.data.days), lossJin: Number(this.data.lossJin) }); if (revision === this.goalRevision) this.setData({ goalAssessment: assessment, goalError: "" }); }
@@ -76,7 +80,7 @@ page({
   },
   generate() {
     return this.action(async () => {
-      const input = { days: Number(this.data.days), lossJin: Number(this.data.lossJin), start: this.data.start, end: this.data.end, restrictions: this.data.restrictions };
+      const input = { mealStyle: this.data.mealStyle, days: Number(this.data.days), lossJin: Number(this.data.lossJin), start: this.data.start, end: this.data.end, restrictions: this.data.restrictions };
       const assessment = await service.assessPlanGoal(input);
       this.setData({ goalAssessment: assessment });
       if (assessment.tooLow) throw Error(assessment.message + "请先调整目标体重。");

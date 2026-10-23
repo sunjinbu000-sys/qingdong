@@ -481,3 +481,13 @@ test("opening historical plan does not overwrite current profile restrictions", 
   assert.equal(p.data.restrictions, "牛奶");
   assert.equal(p.data.plan.id, "old");
 });
+
+test("meal style dropdown defaults to fat-loss and records the customer's choice", () => {
+  const p = loadPage("ai-plan");
+  assert.equal(p.data.mealStyle, "fatloss");
+  p.toggleMealStyles(); assert.equal(p.data.mealStyleOpen, true);
+  p.selectMealStyle({ currentTarget: { dataset: { style: "home" } } });
+  assert.equal(p.data.mealStyle, "home");
+  assert.equal(p.data.mealStyleLabel, "家庭日常");
+  assert.equal(p.data.mealStyleOpen, false);
+});
