@@ -1,4 +1,6 @@
 const { page, service, navigate } = require("../../utils/page");
+const entryIcons = {"team": "/images/home/shortcuts/team.png", "team-detail": "/images/home/shortcuts/team.png", "team-invite": "/images/home/shortcuts/invite.png", "badges": "/images/home/shortcuts/badges.png", "rank": "/images/home/shortcuts/rank.png", "rank-history": "/images/home/shortcuts/rank.png", "ai-plan": "/images/home/shortcuts/ai-plan.png", "events": "/images/home/shortcuts/events.png", "event-detail": "/images/home/shortcuts/events.png", "invite": "/images/home/shortcuts/invite.png", "weight-trend": "/images/home/shortcuts/trend.png", "membership": "/images/ui/member.svg", "privacy": "/images/ui/shield.svg", "account": "/images/ui/edit.svg", "health-profile": "/images/ui/leaf.svg", "health": "/images/ui/book.svg", "health-overview": "/images/ui/weight.svg", "photo": "/images/ui/camera.svg", "photo-history": "/images/ui/gallery.svg", "share": "/images/ui/leaf.svg", "orders": "/images/ui/member.svg", "rewards": "/images/ui/gift.svg", "reward-tasks": "/images/ui/gift.svg", "full-rewards": "/images/ui/gift.svg", "personal-services": "/images/ui/sun.svg", "member-services": "/images/ui/member.svg", "explore": "/images/ui/sun.svg", "forum": "/images/ui/book.svg", "records": "/images/ui/edit.svg", "weight": "/images/ui/weight.svg", "ops": "/images/ui/shield.svg"};
+function withIcon(item) { const name = (item.route || "").split("/")[2]; return { ...item, visualIcon: entryIcons[name] || "/images/ui/" + (/reward|prize/.test(name) ? "gift" : /config|editor|word/.test(name) ? "edit" : /forum|discussion/.test(name) ? "book" : /banner/.test(name) ? "gallery" : /rank/.test(name) ? "rank" : /invite/.test(name) ? "gift" : /team/.test(name) ? "flag" : /weight/.test(name) ? "weight" : /profile/.test(name) ? "leaf" : /challenges|activity/.test(name) ? "flag" : "shield") + ".svg" }; }
 const labels = {
   consumer: "消费者",
   operator: "城市运营",
@@ -30,8 +32,8 @@ page({
       const h = await service.getFeatureHub();
       this.setData({
         ...h,
-        consumer: h.sections.filter((x) => x.group === "consumer"),
-        operations: h.sections.filter((x) => x.group === "operations"),
+        consumer: h.sections.filter((x) => x.group === "consumer").map(withIcon),
+        operations: h.sections.filter((x) => x.group === "operations").map(withIcon),
         roleLabel: labels[h.role],
       });
     });

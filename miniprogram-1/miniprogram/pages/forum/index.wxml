@@ -11,7 +11,7 @@
   </view>
   <view wx:if="{{loading}}" class="feed-message">正在加载文章…</view>
   <view wx:elif="{{error}}" class="card feed-message">{{error}}<button bindtap="retry">重新加载</button></view>
-  <view wx:elif="{{tab==='mine'&&!signedIn}}" class="card feed-message">登录后查看你的文章和互动记录<button class="btn mt" data-url="/pages/account/index" bindtap="go">去登录</button></view>
+  <view wx:elif="{{tab==='mine'&&!signedIn}}" class="card feed-message">登录后查看你的文章和互动记录<button class="btn mt" data-url="/pages/account/index" bindtap="go"><image class="feature-entry-icon" src="/images/ui/edit.svg" mode="aspectFit"/><text>去登录</text></button></view>
   <block wx:else>
     <view wx:if="{{!posts.length && (tab!=='local'||region)}}" class="card feed-empty"><view class="empty-mark">✧</view><view>{{emptyText}}</view></view>
     <view wx:for="{{posts}}" wx:key="id" class="card post-card">

@@ -7,3 +7,40 @@ button{background:#eaf3e9;color:#1d6651;border:0;border-radius:14rpx;padding:14r
 .full-shortcuts{grid-template-columns:repeat(4,minmax(0,1fr))}
 .page .full-shortcut,.page .grid2>button,.page .grid3>button{width:100%;min-width:0}
 .page .city{width:auto;min-width:0}
+
+/* Shared lavender visual system: feature entrances, readable data and quiet forms. */
+page{color:#293553}
+.subtitle,.muted,.label,.small-text,.caption,.form-hint{color:#89829e}
+.heading,.section-title,.title,.profile-title{color:#293553}
+.eyebrow,.section-kicker{color:#8a79b2}
+.card,.stat-card{border-color:#eee9f6;border-radius:32rpx;box-shadow:0 6rpx 24rpx #7762a005}
+.btn{background:#8070d7;border-color:#8070d7;border-radius:22rpx}
+.btn.soft{background:#eee9fb;border-color:#eee9fb;color:#6c58b4}
+.btn.white{background:#fff;border-color:#e6def5;color:#6c58b4}
+.btn.ghost{border-color:#dcd3ee;color:#7764b3}
+button{background:#eee9fb;color:#6c58b4}
+.btn.danger{background:#fff0ed;border-color:#f5dcd6;color:#bd6c66}
+.link{background:transparent;color:#7962c4}
+.pill{background:#ece7f8;color:#7b68ac}
+.hero{background:#e8e1f6}.hero.dark{background:linear-gradient(135deg,#a798db,#8774ce)}
+.hero-desc{color:#89819b}.hero.dark .hero-desc{color:#f0eafb}
+.icon-box{background:#eee8fa}.icon-box.gold{background:#fff0da}.icon-box.purple{background:#eee8fa}
+.notice{background:#eaf5ef;color:#64847b}.notice.warn{background:#fff3e3;color:#a08159}
+.input,.picker,textarea,input:not(.input){background:#faf8fd;border-color:#e4dcf3;color:#35405a}
+.form-label{color:#556079}.divider{background:#eee9f7}
+.segmented{background:#eeeaf5}.segment{background:transparent;color:#8b829c}.segment.active{color:#7760c5;background:#fff}
+.progress{background:#eee9f7}.progress-fill{background:#a496d6}
+.menu-item,.record-row,.switch-row,.config-row{border-bottom-color:#eee9f7}
+.shortcut-card{border-color:#ece6f6;color:#35405a;background:#fff;border-radius:26rpx}
+.service-links{gap:18rpx}.service-links .btn{justify-content:flex-start;text-align:left;min-height:100rpx;padding:20rpx}
+.service-links .btn:nth-child(3n+2){background:#e7f3ed;border-color:#e7f3ed;color:#547f76}
+.service-links .btn:nth-child(3n){background:#fff0e3;border-color:#fff0e3;color:#a47c59}
+.feature-entry-icon{width:52rpx;height:52rpx;flex-shrink:0;display:inline-block;vertical-align:middle;margin-right:12rpx}
+.section-symbol{width:42rpx;height:42rpx;display:inline-block;vertical-align:middle;margin-right:12rpx}
+.page button>.feature-entry-icon+text{min-width:0}
+.tier-card{background:#f6f2fc;border-color:#e9e1f6}.empty{color:#958ba6}.empty-title{color:#6c6082}
+.activity-art{background:#eee7fa}.activity-art.cream{background:#fff0df}.activity-art.sage{background:#e4f2eb}
+.date-control{border-color:#e4dcf3;color:#7964b2}.date-arrow{background:transparent;color:#7964b2}
+.state-title{color:#61527c}.loading-mark{border-color:#e5ddf4;border-top-color:#8d78d0}
+
+.service-links .btn:nth-child(3n+1){background:#eee9fb;border-color:#eee9fb;color:#6c58b4}
