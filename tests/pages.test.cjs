@@ -625,3 +625,14 @@ test("daily meals shows only the chosen day's breakfast lunch dinner and snacks"
     p.onLoad({date:"2025-13-99"});await p.refresh();assert.equal(p.data.date,today);
   } finally {saved=previous;}
 });
+
+test("exercise picker searches activities and writes chosen date into the diary", async () => {
+ const previous=saved;try {
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"运动用户",city:"温州"});
+  const p=loadPage("exercise");p.onLoad({date:"2026-01-01"});await p.refresh();
+  assert.equal(p.data.shown.length,10);p.search({detail:{value:"羽毛球"}});assert.equal(p.data.shown.length,1);
+  p.choose({currentTarget:{dataset:{id:p.data.shown[0].id}}});p.duration({detail:{value:"30"}});await p.add();
+  assert.equal(p.data.sessions.length,1);assert.equal(p.data.totalMinutes,30);assert.equal(p.data.sessions[0].date,"2026-01-01");
+  assert(Number(p.data.totalKcal)>0);assert.equal((await service.getNutritionOverview("2026-01-01")).exerciseCalories,Math.round(Number(p.data.totalKcal)));
+ }finally{saved=previous;}
+});

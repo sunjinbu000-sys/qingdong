@@ -59,7 +59,8 @@
     "pages/weight-trend/index",
     "pages/weight-review/index",
     "pages/word-ops/index",
-    "pages/daily-meals/index"
+    "pages/daily-meals/index",
+    "pages/exercise/index"
   ],
   "window": {
     "navigationBarTitleText": "轻动",

@@ -311,11 +311,21 @@
     },
   ];
   const activities = [
-    { id: "walk", name: "步行 · 演示中等强度", met: 3.5 },
-    { id: "run", name: "跑步 · 演示强度", met: 8 },
-    { id: "strength", name: "力量训练 · 演示强度", met: 3.5 },
-    { id: "cycle", name: "骑行 · 演示强度", met: 6.8 },
-    { id: "yoga", name: "瑜伽 · 演示强度", met: 2.5 },
+    {id:"stroll",name:"散步（约4 km/h）",met:2,category:"步行"},
+    {id:"brisk",name:"快走（约5–6 km/h）",met:3.8,category:"步行"},
+    {id:"jog",name:"慢跑（约8 km/h）",met:7.5,category:"跑步"},
+    {id:"in-place",name:"原地慢跑",met:3.8,category:"跑步"},
+    {id:"rope",name:"跳绳（一般强度）",met:10,category:"有氧"},
+    {id:"badminton",name:"羽毛球（休闲对打）",met:4.5,category:"球类"},
+    {id:"bodyweight",name:"徒手训练（中等强度）",met:2.8,category:"力量"},
+    {id:"gentle-yoga",name:"瑜伽（一般）",met:1.3,category:"舒缓"},
+    {id:"leisure-cycle",name:"骑行（休闲，低于16 km/h）",met:3,category:"骑行"},
+    {id:"slow-walk",name:"慢速散步（低于3.2 km/h）",met:1.3,category:"步行"},
+    {id:"walk",name:"步行 · 演示中等强度",met:3.5,category:"步行"},
+    {id:"run",name:"跑步 · 演示强度",met:8,category:"跑步"},
+    {id:"strength",name:"力量训练 · 演示强度",met:3.5,category:"力量"},
+    {id:"cycle",name:"骑行 · 演示强度",met:6.8,category:"骑行"},
+    {id:"yoga",name:"瑜伽 · 演示强度",met:2.5,category:"舒缓"},
   ];
   const aliases = {
     奶: ["牛奶", "乳制品", "乳糖"],
