@@ -29,3 +29,13 @@ test("native CommonJS imports resolve to a file without Node directory-index fal
       );
     }
 });
+
+test("packaged page images avoid local WebP and PNG files match their extension", () => {
+  for (const file of files(path.join(root, "pages")).filter(p => p.endsWith(".wxml"))) {
+    const source = fs.readFileSync(file, "utf8");
+    assert(!/src=["'][^"']*\.webp["']/.test(source), path.relative(root, file) + " uses a local WebP image");
+  }
+  for (const file of files(path.join(root, "images")).filter(p => p.endsWith(".png"))) {
+    assert.equal(fs.readFileSync(file).subarray(0, 8).toString("hex"), "89504e470d0a1a0a", path.relative(root, file));
+  }
+});

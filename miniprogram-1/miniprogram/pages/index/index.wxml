@@ -5,7 +5,7 @@
 <view class="home-camera nutrition-card section" data-url="/pages/photo/index" bindtap="go">
   <view class="nutrition-wave nutrition-wave-back"></view><view class="nutrition-wave nutrition-wave-front"></view>
   <view class="nutrition-copy"><view class="nutrition-kicker">拍餐识别</view><view class="nutrition-title">这一餐，<view>吃得刚刚好</view></view><view class="nutrition-subtitle">拍下餐食，读懂每一口的营养</view></view>
-  <image class="nutrition-art" src="/images/home/photo-nutrition.webp" mode="aspectFit"/>
+  <image class="nutrition-art" src="/images/home/photo-nutrition.png" mode="aspectFit"/>
   <button class="camera-cta" data-url="/pages/photo/index" catchtap="go"><image class="camera-cta-icon" src="/images/home/camera-white.svg"/><text>拍一拍，识别营养</text></button>
 </view>
 <view class="section full-shortcuts home-shortcuts"><button wx:for="{{shortcuts}}" wx:key="route" class="full-shortcut" data-url="/pages/{{item.route}}/index" bindtap="go"><image class="shortcut-illustration" src="/images/home/shortcuts/{{item.icon}}.png" mode="aspectFit"/><text>{{item.title}}</text></button></view>

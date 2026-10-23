@@ -437,3 +437,17 @@ test("both personal and complete health entries expose the same form while signe
     }
   } finally { service.getSnapshot = original; }
 });
+
+test("every configured bottom tab uses native switchTab navigation", () => {
+  const { navigate } = require("../miniprogram-1/miniprogram/utils/page");
+  const app = require("../miniprogram-1/miniprogram/app.json");
+  const oldSwitch = wx.switchTab, oldNavigate = wx.navigateTo;
+  const calls = [];
+  wx.switchTab = o => calls.push(o.url);
+  wx.navigateTo = () => assert.fail("tab route must not use navigateTo");
+  try {
+    for (const tab of app.tabBar.list) navigate("/" + tab.pagePath);
+    assert.deepEqual(calls, app.tabBar.list.map(t => "/" + t.pagePath));
+    assert.equal(app.tabBar.list.length, 5);
+  } finally { wx.switchTab = oldSwitch; wx.navigateTo = oldNavigate; }
+});
