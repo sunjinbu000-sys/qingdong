@@ -646,3 +646,15 @@ test("manual exercise fields save duration on the selected date without inventin
   await p.saveManual();assert.equal(p.data.sessions[0].name,"饭后拉伸");assert.equal(p.data.sessions[0].minutes,15);assert.equal(p.data.sessions[0].date,"2026-01-02");assert.equal(p.data.sessions[0].exerciseKcal,undefined);assert.equal(p.data.totalMinutes,15);assert.equal(p.data.manualName,"");
  }finally{saved=previous;}
 });
+
+test("profile retains its scroll position after returning and refreshing data", async () => {
+ const oldWx={...wx};try {
+  const p=loadPage("profile");await p.refresh();assert.equal(p.data.profileReady,true);
+  p.onPageScroll({scrollTop:865});p.onHide();
+  let scrolling;
+  wx.nextTick=f=>f();wx.pageScrollTo=o=>{scrolling=o;p.onPageScroll({scrollTop:0});o.complete();};
+  await p.refresh();
+  assert.equal(scrolling.scrollTop,865);assert.equal(scrolling.duration,0);assert.equal(p._scrollTop,865);
+  p.onPageScroll({scrollTop:430});p.onHide();await p.refresh();assert.equal(scrolling.scrollTop,430);
+ }finally{Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});

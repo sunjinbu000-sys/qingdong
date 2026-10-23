@@ -1,6 +1,6 @@
 const { page, service } = require("../../utils/page");
 page({
-  data: { snapshot: { profile: {} }, initial: "轻",
+  data: { profileReady: false, snapshot: { profile: {} }, initial: "轻",
     menuGroups: [
       { title: "健康与记录", items: [
         { title: "个人与健康档案", subtitle: "昵称、城市、身高与目标", route: "account", icon: "sprout" },
@@ -26,17 +26,35 @@ page({
       ] },
     ],
   },
-  refresh() {
-    return this.loadData(async () => {
+  onPageScroll(event) {
+    if (!this._restoringScroll && Number.isFinite(event.scrollTop)) this._scrollTop = Math.max(0, event.scrollTop);
+  },
+  onHide() {
+    this._resumeScrollTop = this._scrollTop || 0;
+  },
+  async refresh() {
+    const resumeScrollTop = this._resumeScrollTop;
+    if (resumeScrollTop !== undefined) this._restoringScroll = true;
+    await this.loadData(async () => {
       const snapshot = await service.getSnapshot();
       this.setData({
         snapshot,
+        profileReady: true,
         stats: snapshot.signedIn
           ? await service.getProfileSummary()
           : { streak: 0, meals: 0, badges: 0 },
         initial: snapshot.profile.nickname.slice(0, 1),
       });
     });
+    if (resumeScrollTop !== undefined) {
+      const restore = () => {
+        if (wx.pageScrollTo) wx.pageScrollTo({ scrollTop: resumeScrollTop, duration: 0, complete: () => { this._restoringScroll = false; } });
+        else this._restoringScroll = false;
+        this._scrollTop = resumeScrollTop;
+        this._resumeScrollTop = undefined;
+      };
+      if (wx.nextTick) wx.nextTick(restore); else restore();
+    }
   },
   logout() {
     wx.showModal({
