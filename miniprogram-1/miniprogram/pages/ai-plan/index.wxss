@@ -2,3 +2,5 @@
 .plan-profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18rpx;margin-top:24rpx;color:#9380a9;font-size:23rpx}.plan-profile-card .section-title{font-size:28rpx}.plan-profile-card .link{font-size:22rpx;flex-shrink:0}
 
 .plan-meals-scroll{width:100%;overflow-x:auto;margin-top:24rpx;white-space:nowrap}.plan-meals-row{display:flex;align-items:stretch;gap:20rpx;padding:2rpx 2rpx 16rpx}.plan-meal-card{flex:0 0 490rpx;width:490rpx;min-width:0;white-space:normal;background:#faf7ff;border:1rpx solid #ebe2f5;border-radius:28rpx;padding:26rpx;box-sizing:border-box}.plan-meal-card .title{font-size:28rpx;line-height:1.6}.plan-meal-card .small-text,.plan-meal-card .caption{font-size:22rpx;line-height:1.8}.plan-meal-card .actions{margin-top:24rpx;flex-wrap:wrap}.plan-meals-hint{font-size:20rpx;color:#ac9abb;text-align:center;margin-top:8rpx}
+
+.day-nav{width:100%;max-width:100%;overflow-x:auto;box-sizing:border-box}
