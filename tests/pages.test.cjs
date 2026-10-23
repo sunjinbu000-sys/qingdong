@@ -658,3 +658,11 @@ test("profile retains its scroll position after returning and refreshing data", 
   p.onPageScroll({scrollTop:430});p.onHide();await p.refresh();assert.equal(scrolling.scrollTop,430);
  }finally{Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+test("team creation defaults to five invite-only members over seven days and retains advanced controls", async () => {
+ const p=loadPage("team-editor");await p.refresh();assert.equal(p.data.form.max,5);assert.equal(p.data.form.method,"invite");assert.equal(p.data.duration,7);assert.equal((Date.parse(p.data.form.end)-Date.parse(p.data.form.start))/86400000,6);
+ p.capacity({detail:{value:"2"}});assert.equal(p.data.form.max,10);
+ p.method({detail:{value:"1"}});assert.equal(p.data.form.method,"approval");
+ p.tasks({detail:{value:["signin","weight"]}});assert.deepEqual(p.data.form.tasks,["signin","weight"]);
+ p.toggleAdvanced();assert.equal(p.data.advanced,true);
+});

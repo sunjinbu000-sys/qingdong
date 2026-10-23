@@ -238,6 +238,7 @@ test("native forms create a team, process applications and pass complete event c
       setData(v) {
         Object.assign(this.data, v);
       },
+      requireAccount: async () => true,
       action: (fn) => fn(),
       loadData: (fn) => fn(),
     };
