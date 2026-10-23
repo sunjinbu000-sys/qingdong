@@ -145,8 +145,12 @@ test("native composer requires category and never publishes before human approva
     await editor.save({ currentTarget: { dataset: {} } });
     assert.match(toast, /分类/);
     assert.equal((await service.listForumPosts({ mode: "mine" })).length, 0);
+    let destination = "";
+    wx.switchTab = o => { destination = o.url; o.success(); };
     editor.setData({ kind: "运动打卡" });
     await editor.save({ currentTarget: { dataset: {} } });
+    assert.equal(toast, "发布成功");
+    assert.equal(destination, "/pages/forum/index");
     const post = (await service.listForumPosts({ mode: "mine" }))[0];
     assert.equal(post.status, "pending");
     assert.equal(post.kind, "运动打卡");

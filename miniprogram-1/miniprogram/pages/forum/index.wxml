@@ -16,7 +16,7 @@
     <view wx:if="{{!posts.length && (tab!=='local'||region)}}" class="card feed-empty"><view class="empty-mark">✧</view><view>{{emptyText}}</view></view>
     <view wx:for="{{posts}}" wx:key="id" class="card post-card">
       <view class="row"><view class="author-name">{{item.author}}</view><text class="post-meta">{{item.city}} · {{item.date}}</text></view>
-      <view class="post-category">{{item.kind}}<text wx:if="{{tab==='mine'&&mine==='mine'}}" class="post-status"> · {{statusLabels[item.status]||item.status}}</text></view>
+      <view class="post-category">{{item.kind}}<text wx:if="{{tab==='mine'&&mine==='mine'&&(item.status==='draft'||item.status==='withdrawn'||item.status==='deleted')}}" class="post-status"> · {{statusLabels[item.status]||item.status}}</text></view>
       <view data-url="/pages/forum-detail/index?id={{item.id}}" bindtap="go"><view wx:if="{{item.title}}" class="post-title">{{item.title}}</view><view class="post-content">{{item.text}}</view></view>
       <view wx:if="{{item.images.length}}" class="post-images"><image class="post-grid-photo" wx:for="{{item.images}}" wx:for-item="src" wx:key="*this" mode="aspectFill" src="{{src}}" data-current="{{src}}" data-images="{{item.images}}" bindtap="preview"/></view>
       <view class="post-footer"><text>{{item.likeCount}} 赞 · {{item.comments.length}} 评论</text><button class="read-post" data-url="/pages/forum-detail/index?id={{item.id}}" bindtap="go">{{item.status==='draft'?'查看草稿':'查看文章'}} ›</button></view>

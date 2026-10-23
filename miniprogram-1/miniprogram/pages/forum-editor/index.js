@@ -93,11 +93,12 @@ page({
       const p = this.data.id
         ? await service.editForumPost(this.data.id, v)
         : await service.createForumPost(v);
-      wx.showToast({
-        title: v.draft ? "草稿已保存" : "已提交人工审核",
-        icon: "success",
-      });
-      navigate("/pages/forum-detail/index?id=" + p.id);
+      if (v.draft) {
+        wx.showToast({ title: "草稿已保存", icon: "success" });
+        navigate("/pages/forum-detail/index?id=" + p.id);
+      } else {
+        wx.switchTab({ url: "/pages/forum/index", success: () => wx.showToast({ title: "发布成功", icon: "success" }) });
+      }
     });
   },
 });
