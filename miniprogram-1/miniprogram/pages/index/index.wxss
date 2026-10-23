@@ -62,3 +62,6 @@
 .ledger-value{font-size:36rpx;font-weight:650;line-height:1.3;overflow-wrap:anywhere;max-width:100%;text-align:center}
 .ledger-unit{font-size:18rpx;color:#a295b5;line-height:1.4}
 .ledger-lilac{background:#f3eefb}.ledger-mint{background:#ecf7f1;color:#508d7a}.ledger-peach{background:#fff1e8;color:#bb7c4c}
+
+/* Homepage club banner uses the supplied soft apricot swatch. */
+.page .banner-slide{background:#FFEBDE}
