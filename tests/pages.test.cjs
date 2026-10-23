@@ -786,3 +786,8 @@ test("food library filters categories searches and personal favorites", async ()
   p.toggleFavorites();p.search({detail:{value:""}});p.selectTab({currentTarget:{dataset:{tab:"recipes"}}});assert(p.data.shown[0].ingredientsText);assert.equal(p.data.amount,1);assert(p.data.shown[0].totalGrams>0);
  }finally{saved=previous;}
 });
+
+test("event square exposes user filters and keeps participation and rewards separate", async () => {
+ const p=loadPage("events");await p.refresh();assert.deepEqual(p.data.filters.map(f=>f.label),["可参与活动","正在进行的活动","我的"]);
+ p.selectFilter({currentTarget:{dataset:{key:"mine"}}});assert.equal(p.data.filter,"mine");p.selectMine({currentTarget:{dataset:{key:"rewards"}}});assert.equal(p.data.mineFilter,"rewards");p.selectFilter({currentTarget:{dataset:{key:"ongoing"}}});assert.equal(p.data.rows,p.data.square.ongoing);
+});
