@@ -617,12 +617,12 @@ function createChallengeFullDomain(c) {
       return change(s=>{const t=find(full(s).teams,k);owner(s,t);if(t.launched||t.closed||t.cancelled)fail("仅筹队期间可以解散小队");t.cancelled=true;t.requests=[];return {cancelled:true};});
     },
     getTeamInvitation(code) {
-      const s=read();requireCity(s);const value=String(code||"").trim();
+      const s=read();const value=String(code||"").trim();
       if(!value)fail("请填写邀请码");
       const t=full(s).teams.find(t=>!t.cancelled&&t.invite===value);
       if(!t)fail("邀请码无效，请核对后重试");
       if(t.inviteExpires&&today()>=t.inviteExpires)fail("邀请码已过期，请好友重新生成");
-      return {id:t.id,name:t.name,city:t.city,start:t.start,end:t.end,max:t.max,memberCount:t.members.length,launched:t.launched,alreadyJoined:t.members.includes(s.session.userId)};
+      return {id:t.id,name:t.name,city:t.city,start:t.start,end:t.end,max:t.max,memberCount:t.members.length,launched:t.launched,closed:!!t.closed,taskCount:t.tasks.length,method:t.method,alreadyRequested:!!(s.session&&t.requests.includes(s.session.userId)),alreadyJoined:!!(s.session&&t.members.includes(s.session.userId))};
     },
     joinTeamByInvite(code) {
       const s = read();

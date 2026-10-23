@@ -733,3 +733,16 @@ test("team creation requires explicit confirmation in the scrollable rules sheet
   await p.submit({detail:{value:{name:"温柔小队"}}});await Promise.all([p.confirmCreate(),p.confirmCreate()]);assert.equal((await service.listTeams({city:"温州"})).length,before+1);assert.equal(p.data.rulesOpen,false);
  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+test("invited guest keeps the invitation through login and joins only after confirming rules", async () => {
+ const previous=saved,oldWx={...wx};try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"队长A",city:"温州"});const date=(await service.getSnapshot()).date;
+  const end=new Date(Date.parse(date+"T00:00:00Z")+6*86400000).toISOString().slice(0,10);
+  const team=await service.createTeam({name:"AB同行",max:5,start:date,end,method:"invite",tasks:["signin","early"]});const invite=await service.generateTeamInvite(team.id);
+  saved.session=null;const p=loadPage("team-join");p.onLoad({code:invite.code});await p.refresh();assert.equal(p.data.signedIn,false);assert.equal(p.data.invitation.name,"AB同行");assert.equal(p.data.invitation.taskCount,2);assert.equal(p.data.invitation.members,undefined);
+  let destination="";wx.navigateTo=o=>destination=o.url;await p.join();assert.equal(destination,"/pages/account/index");assert.equal(p.data.rulesOpen,false);assert.equal(p.data.code,invite.code);
+  saved.session={userId:"invited-b"};saved.profile={...saved.profile,nickname:"好友B",city:"温州"};await p.refresh();await p.join();assert.equal(p.data.rulesOpen,true);assert.equal((await service.getTeam(team.id)).members.length,1);
+  p.closeRules();await p.confirmJoin();assert.equal((await service.getTeam(team.id)).members.length,1);
+  await p.join();await Promise.all([p.confirmJoin(),p.confirmJoin()]);const joined=await service.getTeam(team.id);assert.equal(joined.members.length,2);assert.equal(joined.isMember,true);assert.equal(joined.isCaptain,false);assert.equal(joined.memberProfiles.find(m=>m.isMe).nickname,"好友B");assert.equal(destination,"/pages/team-detail/index?id="+team.id);assert.equal(p.data.rulesOpen,false);
+ }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});
