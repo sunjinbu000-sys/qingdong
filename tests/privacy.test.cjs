@@ -75,3 +75,21 @@ test("health export and confirmed deletion affect only the signed-in user's diar
   d.logout();
   assert.throws(() => d.exportHealthRecords(), /登录/);
 });
+
+test("personal health form saves consent and current weight atomically and restricts loss ranking", () => {
+  const f = setup(), d = f.domain; f.login();
+  const form = { nickname: "小满", city: "温州", height: 165, targetWeight: 55, age: 17, sex: "女", direction: "仅记录日常", healthStatus: "无 / 不适用", currentWeight: 60, initialWeight: 62, calorieGoal: "", goalDays: 30, restrictions: "牛奶、鸡蛋", healthConsent: false };
+  assert.throws(() => d.saveProfile(form), /同意/);
+  assert.equal(d.exportHealthRecords().length, 0);
+  d.savePrivacy({ lossRank: true });
+  d.saveProfile({ ...form, healthConsent: true });
+  assert.equal(d.getExtendedProfile().healthConsent, true);
+  assert.equal(d.getExtendedProfile().age, 17);
+  assert.deepEqual(d.getExtendedProfile().restrictions, ["牛奶", "鸡蛋"]);
+  assert.equal(d.getWeightTrend().records.at(-1).kg, 60);
+  assert.equal(d.getPrivacy().lossRank, false);
+  assert.throws(() => d.savePrivacy({ lossRank: true }), /不能参加/);
+  const before = structuredClone(f.store.read());
+  assert.throws(() => d.saveProfile({ ...form, age: 22, healthConsent: true, calorieGoal: -1 }), /热量/);
+  assert.deepEqual(f.store.read(), before);
+});

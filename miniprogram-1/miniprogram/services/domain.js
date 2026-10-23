@@ -289,6 +289,8 @@ function createDomain({ store, now = Date.now }) {
     savePrivacy(input) {
       return change((s) => {
         requireLogin(s);
+        const health = s.full && s.full.profileExtra;
+        if (input.lossRank === true && health && ((health.age && Number(health.age) < 18) || health.special)) throw Error("当前健康状态仅保留记录功能，不能参加减重榜");
         for (const key of ["publicRank", "showPosterWeight", "lossRank"]) {
           if (Object.prototype.hasOwnProperty.call(input, key)) {
             if (typeof input[key] !== "boolean")
@@ -550,6 +552,31 @@ function createDomain({ store, now = Date.now }) {
           throw new Error(
             "已报名活动，演示账号暂不支持更换城市，可重置演示数据后重选",
           );
+        if (Object.prototype.hasOwnProperty.call(input, "healthConsent")) {
+          if (input.healthConsent !== true) throw Error("请先同意健康信息处理说明");
+          const extra = ensureFull(s, today()).profileExtra;
+          const age = input.age === "" || input.age == null ? "" : positive(input.age, "年龄", 120);
+          if (age !== "" && !Number.isInteger(age)) throw Error("年龄请填写整数");
+          if (!["未设置", "男", "女"].includes(input.sex)) throw Error("请选择有效性别");
+          if (!["培养习惯，温和减重", "保持体重，规律生活", "仅记录日常"].includes(input.direction)) throw Error("请选择有效方向");
+          if (!["无 / 不适用", "孕期或哺乳期", "需要专业指导的健康状态"].includes(input.healthStatus)) throw Error("请选择有效健康状态");
+          const current = input.currentWeight === "" || input.currentWeight == null ? null : positive(input.currentWeight, "当前体重", 350);
+          if (input.initialWeight !== "" && input.initialWeight != null) extra.initialWeight = positive(input.initialWeight, "起始体重", 350);
+          if (input.calorieGoal === "" || input.calorieGoal == null) delete extra.calorieGoal;
+          else extra.calorieGoal = positive(input.calorieGoal, "每日摄入热量目标", 10000);
+          if (input.goalDays !== "" && input.goalDays != null) extra.goalDays = positive(input.goalDays, "目标周期", 365);
+          extra.age = age; extra.sex = input.sex; extra.direction = input.direction;
+          extra.healthStatus = input.healthStatus; extra.special = input.healthStatus !== "无 / 不适用";
+          extra.healthConsent = true; extra.healthConsentAt = new Date(now()).toISOString();
+          extra.restrictions = String(input.restrictions || "").split(/[、,，\s]+/).filter(Boolean).map(v => text(v, "忌口", 30)).slice(0, 20);
+          if ((age !== "" && age < 18) || extra.special) s.privacy.lossRank = false;
+          if (current !== null) {
+            if (!extra.initialWeight) extra.initialWeight = current;
+            const records = s.records.filter(r => r.userId === s.session.userId && r.type === "weight");
+            const last = records.slice().sort((a, b) => a.date.localeCompare(b.date)).slice(-1)[0];
+            if (!last || last.date !== today() || last.kg !== current) s.records.push({ id: id("record"), userId: s.session.userId, type: "weight", date: today(), kg: current, createdAt: now() });
+          }
+        }
         s.profile = { nickname, city: input.city, height, targetWeight };
         return s.profile;
       });
