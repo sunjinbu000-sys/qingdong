@@ -636,3 +636,13 @@ test("exercise picker searches activities and writes chosen date into the diary"
   assert(Number(p.data.totalKcal)>0);assert.equal((await service.getNutritionOverview("2026-01-01")).exerciseCalories,Math.round(Number(p.data.totalKcal)));
  }finally{saved=previous;}
 });
+
+test("manual exercise fields save duration on the selected date without inventing calories", async () => {
+ const previous=saved;try {
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"手填运动",city:"温州"});
+  const p=loadPage("exercise");p.onLoad({date:"2026-01-02"});await p.refresh();
+  p.manualInput({currentTarget:{dataset:{key:"manualName"}},detail:{value:"饭后拉伸"}});
+  p.manualInput({currentTarget:{dataset:{key:"manualMinutes"}},detail:{value:"15"}});
+  await p.saveManual();assert.equal(p.data.sessions[0].name,"饭后拉伸");assert.equal(p.data.sessions[0].minutes,15);assert.equal(p.data.sessions[0].date,"2026-01-02");assert.equal(p.data.sessions[0].exerciseKcal,undefined);assert.equal(p.data.totalMinutes,15);assert.equal(p.data.manualName,"");
+ }finally{saved=previous;}
+});

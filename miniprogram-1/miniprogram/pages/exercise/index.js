@@ -1,7 +1,7 @@
 const {page,service}=require("../../utils/page");
 const Health=require("../../services/reference/health-model");
 page({
- data:{date:"",today:"",query:"",expanded:false,activities:[],shown:[],sessions:[],weight:70,weightSource:"参考体重",totalMinutes:0,totalKcal:"0.00",selected:null,minutes:"30"},
+ data:{date:"",today:"",query:"",manualName:"",manualMinutes:"",expanded:false,activities:[],shown:[],sessions:[],weight:70,weightSource:"参考体重",totalMinutes:0,totalKcal:"0.00",selected:null,minutes:"30"},
  onLoad(q={}){this.requestedDate=q.date||"";},
  refresh(){return this.loadData(async()=>{
   const s=await service.getSnapshot();const candidate=this.requestedDate||this.data.date||s.date;
@@ -12,6 +12,8 @@ page({
   this.setData({date,today:s.date,weight,weightSource,activities,sessions:diary.exercises,totalMinutes:diary.exercises.reduce((n,r)=>n+r.minutes,0),totalKcal:diary.exercises.reduce((n,r)=>n+(r.exerciseKcal||0),0).toFixed(2)});this.filter();
  });},
  filter(){const q=this.data.query.trim();this.setData({shown:this.data.activities.filter(a=>!q||a.name.includes(q)||(a.category||"").includes(q)).slice(0,this.data.expanded||q?100:10)});},
+ manualInput(e){this.setData({[e.currentTarget.dataset.key]:e.detail.value});},
+ saveManual(){return this.action(async()=>{if(!(await this.requireAccount()))return;await service.saveRecord({type:"exercise",date:this.data.date,name:this.data.manualName,minutes:this.data.manualMinutes});this.setData({manualName:"",manualMinutes:""});await this.refresh();wx.showToast({title:"运动已记录",icon:"success"});});},
  search(e){this.setData({query:e.detail.value});this.filter();},
  more(){this.setData({expanded:!this.data.expanded});this.filter();},
  dateChange(e){this.requestedDate=e.detail.value;this.setData({selected:null});return this.refresh();},
