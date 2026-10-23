@@ -760,3 +760,11 @@ test("local forum resolves the device city and never falls back to profile or st
   wx.getLocation=o=>o.fail({errMsg:"permission denied"});await p.locate();assert.equal(p.data.region,null);assert.equal(p.data.posts.length,0);assert.match(p.data.locationError,/授权/);await p.refresh();assert.equal(p.data.region,null);
  }finally{saved=previous;config.location.tencentMapKey=oldKey;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+test("forum personal area preserves collection and interaction tabs", async () => {
+ const previous=saved;try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"个人论坛",city:"温州"});await service.favoriteForumPost("forum-demo-1");await service.saveForumBio("记录每一份改变");
+  const p=loadPage("forum");await p.changeTab({currentTarget:{dataset:{id:"mine"}}});assert.equal(p.data.personal.nickname,"个人论坛");assert.equal(p.data.personal.bio,"记录每一份改变");assert.deepEqual(p.data.mineTabs.map(t=>t.label),["笔记","收藏","赞过","评论过"]);
+  await p.changeMine({currentTarget:{dataset:{id:"favorited"}}});assert.equal(p.data.posts[0].id,"forum-demo-1");assert.equal(p.data.mine,"favorited");
+ }finally{saved=previous;}
+});

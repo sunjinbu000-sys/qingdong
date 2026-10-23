@@ -258,3 +258,11 @@ test("real-name public authors can be followed while anonymous authors stay priv
  s.session.userId="me";const anon=api.createForumPost({text:"匿名分享自己的小日常",kind:"生活分享",anonymous:true});api.moderateForumPost(anon.id,"approved","完整内容审核通过");
  a.throws(()=>api.followForumUser("me"),/自己/);
 });
+
+test("forum personal counts, biography and collection are based on the signed-in user", () => {
+ const {api,s}=fixture();const own=api.createForumPost({title:"日常笔记",text:"今天也认真吃饭记录",kind:"生活分享",anonymous:false});s.full.role="hq";api.moderateForumPost(own.id,"approved","完整内容审核通过");api.saveForumBio("记录生活的小改变");
+ s.session.userId="reader";s.profile.nickname="另一位轻友";api.favoriteForumPost(own.id);api.likeForumPost(own.id);api.followForumUser("me");
+ a.equal(api.listForumPosts({mode:"favorited"})[0].id,own.id);a.equal(api.getForumPersonalSummary().following,1);a.equal(api.getForumPersonalSummary().bio,"");
+ s.session.userId="me";const summary=api.getForumPersonalSummary();a.equal(summary.followers,1);a.equal(summary.likes,1);a.equal(summary.bio,"记录生活的小改变");a.equal(api.listForumPosts({mode:"favorited"}).length,0);
+ a.throws(()=>api.saveForumBio("a".repeat(121)),/120/);
+});

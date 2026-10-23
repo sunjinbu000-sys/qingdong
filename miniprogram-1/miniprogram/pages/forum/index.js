@@ -6,6 +6,7 @@ page({
     mine: "mine",
     posts: [],
     signedIn: false,
+    personal: { nickname: "轻动新朋友", bio: "", following: 0, followers: 0, likes: 0 },
     region: null,
     locationError: "",
     locating: false,
@@ -17,9 +18,10 @@ page({
       { id: "mine", label: "我的" },
     ],
     mineTabs: [
-      { id: "mine", label: "我的文章" },
-      { id: "liked", label: "我点赞的" },
-      { id: "commented", label: "我评论过的" },
+      { id: "mine", label: "笔记" },
+      { id: "favorited", label: "收藏" },
+      { id: "liked", label: "赞过" },
+      { id: "commented", label: "评论过" },
     ],
   },
   refresh() {
@@ -42,10 +44,12 @@ page({
           feed: tab === "mine" ? "" : tab,
           sort: tab === "recommended" || tab === "national" ? "hot" : "new",
         });
+      const personal = snapshot.signedIn && tab === "mine" ? await service.getForumPersonalSummary() : null;
       if (this.revision !== revision) return;
       this._feedReady = true;
       this.setData({
         signedIn: snapshot.signedIn,
+        personal: personal || this.data.personal,
         region,
         posts: posts.map(post => {
           const stamp=new Date(post.createdAt).getTime(),elapsed=Date.now()-stamp;
@@ -54,7 +58,9 @@ page({
         }),
         emptyText:
           tab === "mine"
-            ? mode === "liked"
+            ? mode === "favorited"
+              ? "还没有收藏的笔记，遇到喜欢的内容就收藏起来吧"
+              : mode === "liked"
               ? "还没有点赞的文章"
               : mode === "commented"
                 ? "还没有评论过的文章"
@@ -75,6 +81,7 @@ page({
     return this.refresh();
   },
   changeMine(e) {
+    if(!this.data.mineTabs.some(t=>t.id===e.currentTarget.dataset.id))return;
     this.setData({ mine: e.currentTarget.dataset.id, posts: [] });
     return this.refresh();
   },
@@ -91,6 +98,7 @@ page({
   like(e){return this.action(async()=>{if(!(await this.requireAccount()))return;await service.likeForumPost(e.currentTarget.dataset.id);await this.refresh();});},
   author(e){const p=this.data.posts.find(p=>p.id===e.currentTarget.dataset.id);if(p&&!p.anonymous)navigate("/pages/public-profile/index?userId="+encodeURIComponent(p.userId));},
   more(e){const p=this.data.posts.find(p=>p.id===e.currentTarget.dataset.id);if(!p)return;wx.showActionSheet({itemList:p.mine?["编辑笔记","查看笔记"]:[p.favorited?"取消收藏":"收藏笔记","举报笔记"],success:r=>{if(p.mine){navigate(r.tapIndex===0?"/pages/forum-editor/index?id="+p.id:"/pages/forum-detail/index?id="+p.id);return;}this.action(async()=>{if(!(await this.requireAccount()))return;if(r.tapIndex===0){await service.favoriteForumPost(p.id);await this.refresh();}else{wx.showModal({title:"举报笔记",editable:true,placeholderText:"请填写举报原因",success:result=>{if(result.confirm)this.action(async()=>{await service.reportForumPost(p.id,result.content);wx.showToast({title:"举报已提交",icon:"success"});});}});}});}});},
+  editBio(){if(!this.data.signedIn)return navigate("/pages/account/index");wx.showModal({title:"编辑个人简介",editable:true,content:this.data.personal.bio||"",placeholderText:"介绍一下自己（最多120字）",confirmText:"保存",success:r=>{if(r.confirm)this.action(async()=>{await service.saveForumBio(r.content||"");await this.refresh();wx.showToast({title:"简介已更新",icon:"success"});});}});},
   publish() {
     navigate(
       this.data.signedIn ? "/pages/forum-editor/index" : "/pages/account/index",

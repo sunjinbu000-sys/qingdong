@@ -182,6 +182,14 @@ function createCommunityDomain(c) {
     followForumUser(userId) {
       return c.change(s=>{const from=c.requireLogin(s),d=init(s);if(from===userId)throw Error("不能关注自己");if(!d.posts.some(p=>p.userId===userId&&!p.anonymous&&visible(s,p)))throw Error("暂时无法关注此用户");d.follows=d.follows||[];const index=d.follows.findIndex(f=>f.from===from&&f.to===userId);if(index<0)d.follows.push({from,to:userId});else d.follows.splice(index,1);return {following:index<0};});
     },
+    getForumPersonalSummary() {
+      const s=c.read(),userId=c.requireLogin(s),d=init(s),follows=d.follows||[];
+      const publicPosts=d.posts.filter(p=>p.userId===userId&&p.status==="approved");
+      return {userId,nickname:s.profile.nickname||"轻动伙伴",bio:(d.profileBios||{})[userId]||"",following:follows.filter(f=>f.from===userId).length,followers:follows.filter(f=>f.to===userId).length,likes:publicPosts.reduce((n,p)=>n+p.likes.length,0)};
+    },
+    saveForumBio(value) {
+      return c.change(s=>{const userId=c.requireLogin(s),d=init(s);if(typeof value!=="string"||value.trim().length>120)throw Error("简介最多120字");const bio=value.trim();if(bio)check(s,bio);d.profileBios=d.profileBios||{};d.profileBios[userId]=bio;return {bio};});
+    },
     getForumRegion() {
       return init(c.read()).localRegion || null;
     },
@@ -204,7 +212,7 @@ function createCommunityDomain(c) {
     listForumPosts(options = {}) {
       const s = c.read(),
         d = init(s);
-      if (["mine", "draft", "liked", "commented"].includes(options.mode))
+      if (["mine", "draft", "liked", "commented", "favorited"].includes(options.mode))
         c.requireLogin(s);
       return d.posts
         .filter((p) =>
@@ -212,6 +220,8 @@ function createCommunityDomain(c) {
             ? p.userId === uid(s) && p.status !== "deleted"
             : options.mode === "draft"
               ? p.userId === uid(s) && p.status === "draft"
+              : options.mode === "favorited"
+                ? visible(s,p) && p.favorites.includes(uid(s))
               : options.mode === "liked"
                 ? visible(s, p) && p.likes.includes(uid(s))
                 : options.mode === "commented"
@@ -604,6 +614,8 @@ function createCommunityDomain(c) {
           p.favorites = p.favorites.filter((x) => x !== userId);
         });
         d.blocks = d.blocks.filter((x) => x.from !== userId && x.to !== userId);
+        d.follows = (d.follows || []).filter(f => f.from !== userId && f.to !== userId);
+        if(d.profileBios)delete d.profileBios[userId];
         d.deleted = true;
         s.full.messages = s.full.messages.filter(
           (x) => x.userId && x.userId !== userId,
