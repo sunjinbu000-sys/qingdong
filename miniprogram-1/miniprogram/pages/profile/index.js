@@ -19,7 +19,7 @@ page({
       { title: "会员与服务", items: [
         { title: "我的会员权益", subtitle: "体验卡、识餐额度与会员权益", route: "membership", icon: "member" },
         { title: "会员补卡与提醒", route: "member-services", icon: "member" },
-        { title: "订单 · 消息 · 收藏", route: "personal-services", icon: "shield" },
+        { title: "会员与订单", route: "personal-services", icon: "shield" },
       ] },
       { title: "设置与更多", items: [
         { title: "隐私与数据", subtitle: "分享多少，由你决定", route: "privacy", icon: "shield" },
