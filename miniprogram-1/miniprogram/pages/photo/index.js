@@ -2,8 +2,8 @@ const { page, service, errorMessage, navigate } = require("../../utils/page");
 const {
   chooseFoodImage,
   persistFoodImage,
-  takeFoodPhoto,
 } = require("../../utils/media");
+const { watchRewardedVideo } = require("../../utils/rewarded-video");
 const { mealSlot } = require("../../services/membership");
 const slots = {
   breakfast: "早餐",
@@ -14,6 +14,7 @@ const slots = {
 page({
   data: {
     signedIn: false,
+    screen: "capture",
     access: { remaining: 0 },
     planId: "",
     editName: "",
@@ -69,7 +70,7 @@ page({
       ) {
         this.setData({
           needsAccount: false,
-          photoError: "照片已准备好，点击“识别并保存”继续。",
+          photoError: "照片已准备好，点击下方确认按钮继续。",
         });
       }
     });
@@ -82,14 +83,9 @@ page({
     });
   },
   capture() {
-    if (this.data.preview) {
-      this.retake();
-      return;
-    }
     return this.action(async () => {
-      if (!this.data.cameraReady) throw Error("相机尚未就绪，请稍后重试");
-      const path = await takeFoodPhoto(wx);
-      await this.acceptImage(path);
+      const path = await chooseFoodImage(wx, ["camera"]);
+      if (path) await this.acceptImage(path);
     });
   },
   async acceptImage(path) {
@@ -106,6 +102,8 @@ page({
       result: null,
       photoError: "",
       cameraReady: false,
+      screen: "capture",
+      needsAccount: false,
     });
     if (!snapshot.signedIn || !snapshot.profile.city) {
       this.setData({
@@ -114,7 +112,6 @@ page({
       });
       return;
     }
-    await this.processPending();
   },
   onCameraReady() {
     this.setData({ cameraReady: true, cameraError: "" });
@@ -163,9 +160,39 @@ page({
   toggleAccess() {
     this.setData({ showAccess: !this.data.showAccess });
   },
-  retryRecognition() {
+  retryRecognition() { return this.confirmPhoto(); },
+  confirmPhoto() {
     return this.action(async () => {
+      if (!this.pending) throw Error("请先拍照或选择一张餐食照片");
       if (!(await this.requireAccount())) return;
+      const access = await service.getRecognitionAccess();
+      this.setData({ access });
+      if (!access.photoEnabled) throw Error("识餐功能暂未开放，请稍后重试");
+      if (access.globalRemaining <= 0) throw Error("今日识餐服务额度已用完，请稍后重试");
+      if (access.remaining <= 0) { this.setData({ screen: "access" }); return; }
+      this.setData({ screen: "capture" });
+      await this.processPending();
+    });
+  },
+  backToCapture() { this.setData({ screen: "capture" }); },
+  watchAndRecognize() {
+    return this.action(async () => {
+      if (!this.pending) throw Error("照片已失效，请返回重新拍照");
+      if (!(await this.requireAccount())) return;
+      const access = await service.getRecognitionAccess();
+      this.setData({ access });
+      if (!access.photoEnabled || access.globalRemaining <= 0) throw Error("识餐服务当前不可用，请稍后重试");
+      if (access.remaining > 0) { this.setData({ screen: "capture" }); await this.processPending(); return; }
+      if (!access.adsAvailable) throw Error("激励视频暂未开放或今日次数已用完，可查看会员权益");
+      if (!wx.createRewardedVideoAd || !/^adunit-/.test(access.rewardedVideoAdUnitId || "")) throw Error("激励视频广告尚未配置，请稍后重试或查看会员权益");
+      const video = await service.beginRewardedVideo();
+      let completed = false;
+      try { completed = await watchRewardedVideo(wx, access.rewardedVideoAdUnitId); }
+      catch (error) { await service.completeRewardedVideo({ id: video.id, complete: false }); throw error; }
+      const reward = await service.completeRewardedVideo({ id: video.id, complete: completed });
+      await this.refresh();
+      if (!reward.granted) { wx.showToast({ title: "中途关闭未获得次数，可重试", icon: "none" }); return; }
+      this.setData({ screen: "capture" });
       await this.processPending();
     });
   },

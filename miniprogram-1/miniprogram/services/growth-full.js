@@ -354,6 +354,10 @@ function createGrowthFullDomain(ctx) {
       login(s);
       const m = membershipView(s, today());
       return {
+        todayUsed: f.ai.logs.filter(l => l.userId === login(s) && l.day === today() && l.type === "photo" && l.status === "success").length,
+        adDailyLimit: f.ads.config.dailyLimit,
+        adsWatchedToday: f.ads.receipts.filter(r => r.userId === login(s) && r.date === today()).length,
+        rewardedVideoAdUnitId: f.ads.config.rewardedVideo,
         freeCredits: f.ai.freeCredits,
         adCredits: f.ads.credits,
         remaining:
@@ -379,7 +383,7 @@ function createGrowthFullDomain(ctx) {
         adsAvailable: !!(
           f.ads.config.enabled &&
           f.ads.config.rewardedVideo &&
-          f.ads.receipts.filter((r) => r.date === today()).length <
+          f.ads.receipts.filter((r) => r.userId === login(s) && r.date === today()).length <
             f.ads.config.dailyLimit
         ),
         mock: true,

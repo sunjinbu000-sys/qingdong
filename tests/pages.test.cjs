@@ -31,19 +31,16 @@ test("camera circle captures once before login, keeps selected slot and later sa
     await p.refresh();
     p.onCameraReady();
     let shots = 0;
-    wx.createCameraContext = () => ({
-      takePhoto: (o) => {
-        shots++;
-        setTimeout(
-          () => o.success({ tempImagePath: "wxfile://camera-tmp.jpg" }),
-          5,
-        );
-      },
-    });
+    wx.chooseMedia = o => {
+      assert.deepEqual(o.sourceType, ["camera"]);
+      shots++;
+      setTimeout(() => o.success({ tempFiles: [{ tempFilePath: "wxfile://camera-tmp.jpg", size: 1024 }] }), 5);
+    };
     await Promise.all([p.capture(), p.capture()]);
     assert.equal(shots, 1);
     assert.equal(p.data.preview, "wxfile://camera-tmp.jpg");
     assert.equal(p.data.needsAccount, true);
+    assert.equal(p.data.result, null);
     assert.equal(p.pending.slot, "dinner");
     await p.refresh();
     assert.equal(p.data.preview, "wxfile://camera-tmp.jpg");
@@ -490,4 +487,45 @@ test("meal style dropdown defaults to fat-loss and records the customer's choice
   assert.equal(p.data.mealStyle, "home");
   assert.equal(p.data.mealStyleLabel, "家庭日常");
   assert.equal(p.data.mealStyleOpen, false);
+});
+
+test("photo selection never charges or recognizes before explicit confirmation", async () => {
+  const previous = saved, oldWx = { ...wx }; saved = undefined;
+  try {
+    const service = require("../miniprogram-1/miniprogram/services/index");
+    await service.loginDemo(); await service.saveProfile({ nickname: "轻友", city: "温州", height: 165, targetWeight: 55 });
+    const p = loadPage("photo"); p.onLoad({ slot: "lunch" }); await p.refresh();
+    const before = (await service.getRecognitionAccess()).remaining;
+    await p.acceptImage("wxfile://pending-food.jpg");
+    assert.equal(p.data.result, null);
+    assert.equal((await service.getRecognitionAccess()).remaining, before);
+    const requestId = p.pending.requestId;
+    wx.chooseMedia = o => o.fail({ errMsg: "chooseMedia:fail cancel" });
+    await p.capture(); assert.equal(p.pending.requestId, requestId);
+    wx.env = { USER_DATA_PATH: "/owned" }; wx.getFileSystemManager = () => ({ copyFile: o => o.success() });
+    await p.confirmPhoto();
+    assert.equal(p.data.result.slot, "lunch");
+    assert.equal((await service.getRecognitionAccess()).remaining, before - 1);
+    await p.confirmPhoto();
+    assert.equal((await service.getRecognitionAccess()).remaining, before - 1);
+  } finally { saved = previous; global.wx = oldWx; }
+});
+test("no-quota recognition retains the photo and only completed rewarded video continues recognition", async () => {
+  const previous = saved, oldWx = { ...wx }; saved = undefined;
+  const service = require("../miniprogram-1/miniprogram/services/index");
+  const originals = { getRecognitionAccess: service.getRecognitionAccess, beginRewardedVideo: service.beginRewardedVideo, completeRewardedVideo: service.completeRewardedVideo };
+  try {
+    await service.loginDemo(); await service.saveProfile({ nickname: "轻友", city: "温州", height: 165, targetWeight: 55 });
+    let credits = 0, ended = false, recognized = 0;
+    service.getRecognitionAccess = async () => ({ remaining: credits, photoEnabled: true, globalRemaining: 10, adsAvailable: true, rewardedVideoAdUnitId: "adunit-test" });
+    service.beginRewardedVideo = async () => ({ id: "video" });
+    service.completeRewardedVideo = async input => { if (input.complete) credits++; return { granted: input.complete ? 1 : 0 }; };
+    wx.createRewardedVideoAd = () => { let close; return { onClose: cb => close = cb, onError: () => {}, offClose: () => {}, offError: () => {}, destroy: () => {}, show: () => { setTimeout(() => close({ isEnded: ended }), 0); return Promise.resolve(); } }; };
+    const p = loadPage("photo"); p.onLoad({ slot: "dinner" });
+    await p.acceptImage("wxfile://food.jpg"); const id = p.pending.requestId;
+    p.processPending = async () => { recognized++; assert.equal(p.pending.requestId, id); };
+    await p.confirmPhoto(); assert.equal(p.data.screen, "access"); assert.equal(recognized, 0);
+    await p.watchAndRecognize(); assert.equal(recognized, 0); assert.equal(credits, 0); assert.equal(p.pending.requestId, id);
+    ended = true; await p.watchAndRecognize(); assert.equal(recognized, 1); assert.equal(p.data.screen, "capture");
+  } finally { Object.assign(service, originals); saved = previous; global.wx = oldWx; }
 });
