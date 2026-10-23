@@ -8,3 +8,8 @@ test('event square filters enrollment active events and owns participation and r
  const state=f.store.read();state.session.userId='someone-else';f.store.write(state);assert.equal(d.getEventSquare().participated.length,0);assert.equal(d.getEventSquare().rewards.length,0);
  state.session=null;f.store.write(state);assert.equal(d.getEventSquare().participated.length,0);assert.equal(d.getEventSquare().rewards.length,0);
 });
+
+test('event scopes distinguish national activities from the current city',()=>{
+ const f=setup(),d=f.domain;f.login();const national=d.getEventSquare({scope:'national'}),local=d.getEventSquare({scope:'city'});
+ assert(national.available.some(e=>e.city==='杭州'));assert(!local.available.some(e=>e.city==='杭州'));assert(local.available.some(e=>e.scope==='all'));assert(national.available.find(e=>e.city==='杭州').canEnroll===false);
+});

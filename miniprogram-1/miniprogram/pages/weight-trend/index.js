@@ -1,4 +1,4 @@
-const { page, service } = require("../../utils/page");
+const { page, service, navigate } = require("../../utils/page");
 const { shiftDate } = require("../../utils/date");
 page({
   data: { days: 7, ranges: [7, 30, 90], current: "—", difference: "暂无对比", goalGap: "—", bmi: "—", records: [], points: [], lines: [], ticks: [], labels: [] },
@@ -11,6 +11,11 @@ page({
       this.setData({ signedIn: snapshot.signedIn, today: snapshot.date });
       this.renderTrend();
     });
+  },
+  editWeight(e) {
+    const records=(this.source&&this.source.records)||[],date=e&&e.currentTarget&&e.currentTarget.dataset.date;
+    const latest=date?records.filter(r=>r.date===date).slice(-1)[0]:records[records.length-1];
+    navigate("/pages/records/index?type=weight&date="+(latest?latest.date:this.today)+ (latest?"&edit=1":""));
   },
   chooseRange(e) { this.setData({ days: Number(e.currentTarget.dataset.days) }); this.renderTrend(); },
   renderTrend() {

@@ -4,6 +4,7 @@ page({
   data: {
     type: "meal",
     foods: [], shownFoods: [], basket: [], query: "", expanded: false, selectedFood: null, grams: "100", totalKcal: "0.00", manual: false,
+    weightEditing: false,
     weightInitial: "—", weightTarget: "—", weightDelta: "—",
     today: "",
     slots: ["早餐", "午餐", "晚餐", "加餐"],
@@ -11,6 +12,7 @@ page({
     form: { date: "", name: "", kcal: "", minutes: "", kg: "", note: "" },
   },
   onLoad(options) {
+    this.editWeight = options.edit === "1";
     const type = ["meal", "exercise", "weight"].includes(options.type)
       ? options.type
       : "meal";
@@ -27,9 +29,11 @@ page({
     this.setData({today:bizDate(),loading:false});
     if(this.data.type==="weight")return this.loadData(async()=>{
       const snapshot=await service.getSnapshot();
-      if(wx.setNavigationBarTitle)wx.setNavigationBarTitle({title:"记体重"});
+      if(wx.setNavigationBarTitle)wx.setNavigationBarTitle({title:this.editWeight?"修改体重":"记体重"});
       if(!snapshot.signedIn){this.weightTrend=null;this.setData({weightInitial:"—",weightTarget:"—",weightDelta:"—"});return;}
-      this.weightTrend=await service.getWeightTrend();this.updateWeightStats();
+      this.weightTrend=await service.getWeightTrend();
+      if(this.editWeight&&!this._weightEditLoaded){const previous=this.weightTrend.records.filter(r=>r.date===this.data.form.date).slice(-1)[0];if(previous)this.setData({weightEditing:true,"form.kg":String(previous.kg),"form.note":previous.note||""});this._weightEditLoaded=true;}
+      this.updateWeightStats();
     });
     if(this.data.type==="meal")return this.loadData(async()=>{
       const library=await service.getFoodLibrary();

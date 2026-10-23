@@ -791,3 +791,11 @@ test("event square exposes user filters and keeps participation and rewards sepa
  const p=loadPage("events");await p.refresh();assert.deepEqual(p.data.filters.map(f=>f.label),["可参与活动","正在进行的活动","我的"]);
  p.selectFilter({currentTarget:{dataset:{key:"mine"}}});assert.equal(p.data.filter,"mine");p.selectMine({currentTarget:{dataset:{key:"rewards"}}});assert.equal(p.data.mineFilter,"rewards");p.selectFilter({currentTarget:{dataset:{key:"ongoing"}}});assert.equal(p.data.rows,p.data.square.ongoing);
 });
+
+test("weight hero opens the latest owned record and editing prefills weight and note", async () => {
+ const previous=saved,oldWx={...wx};try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"修改体重",city:"温州"});await service.saveRecord({type:"weight",date:"2026-01-05",kg:72,note:"晨起"});
+  const p=loadPage("weight-trend");await p.refresh();let destination="";wx.navigateTo=o=>destination=o.url;p.editWeight();assert.equal(destination,"/pages/records/index?type=weight&date=2026-01-05&edit=1");
+  const record=loadPage("records");record.onLoad({type:"weight",date:"2026-01-05",edit:"1"});await record.refresh();assert.equal(record.data.form.kg,"72");assert.equal(record.data.form.note,"晨起");assert.equal(record.data.weightEditing,true);
+ }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});
