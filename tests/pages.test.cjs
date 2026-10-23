@@ -362,3 +362,25 @@ test("signed-out diary shows a selectable calendar and clears previous personal 
     assert.equal(p.data.overview.calendar.filter(d => d.selected)[0].date, "2026-10-20");
   } finally { service.getSnapshot = original; }
 });
+
+test("rank switches national and own city while retaining the selected metric", async () => {
+  const service = require("../miniprogram-1/miniprogram/services/index");
+  const oldSnapshot = service.getSnapshot, oldRank = service.getFullRank;
+  const queries = [];
+  service.getSnapshot = async () => ({ date: "2026-10-23", profile: { city: "杭州" } });
+  service.getFullRank = async q => { queries.push({ ...q }); return { ...q, rows: [] }; };
+  try {
+    const p = loadPage("rank");
+    await p.refresh();
+    assert.equal(queries.at(-1).scope, "national");
+    await p.chooseScope({ currentTarget: { dataset: { scope: "city" } } });
+    assert.equal(queries.at(-1).city, "杭州");
+    assert.equal(queries.at(-1).scope, "city");
+    await p.chooseMetric({ currentTarget: { dataset: { metric: "loss" } } });
+    assert.equal(queries.at(-1).metric, "loss");
+    assert.equal(queries.at(-1).scope, "city");
+    await p.chooseScope({ currentTarget: { dataset: { scope: "national" } } });
+    assert.equal(queries.at(-1).metric, "loss");
+    assert.equal(queries.at(-1).scope, "national");
+  } finally { service.getSnapshot = oldSnapshot; service.getFullRank = oldRank; }
+});
