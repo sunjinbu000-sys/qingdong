@@ -607,3 +607,21 @@ test("forum batch picker preserves selected order and remaining capacity", async
     assert.equal(p.data.images.length,9);
   } finally {Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+test("daily meals shows only the chosen day's breakfast lunch dinner and snacks", async () => {
+  const previous=saved;
+  try {
+    saved=undefined;
+    const service=require("../miniprogram-1/miniprogram/services/index");
+    await service.loginDemo();await service.saveProfile({nickname:"三餐用户",city:"温州"});
+    const today=(await service.getSnapshot()).date;
+    await service.saveRecord({type:"meal",date:today,slot:"breakfast",name:"早餐燕麦",kcal:200});
+    await service.saveRecord({type:"meal",date:"2026-01-01",slot:"dinner",name:"另一日餐食",kcal:300});
+    const p=loadPage("daily-meals");p.onLoad({date:today});await p.refresh();
+    assert.equal(p.data.mealGroups.length,4);
+    assert.equal(p.data.mealGroups[0].records[0].name,"早餐燕麦");
+    assert.equal(p.data.mealGroups[0].total,200);
+    assert.equal(p.data.mealGroups[2].records.length,0);
+    p.onLoad({date:"2025-13-99"});await p.refresh();assert.equal(p.data.date,today);
+  } finally {saved=previous;}
+});
