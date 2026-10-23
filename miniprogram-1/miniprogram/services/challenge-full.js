@@ -216,6 +216,7 @@ function createChallengeFullDomain(c) {
     return {
       ...clone(t),
       invite: t.owner === u ? t.invite : "",
+      memberProfiles: t.members.map(userId=>({userId,nickname:userId===u?s.profile.nickname:(full(s).users[userId]||{}).nickname||"轻动伙伴",isMe:userId===u,isCaptain:userId===t.owner})),
       isCaptain: t.owner === u,
       isMember: t.members.includes(u),
       progress: progress(t),
@@ -609,11 +610,18 @@ function createChallengeFullDomain(c) {
         return teamView(s, t);
       });
     },
+    generateTeamInvite(k) {
+      return change(s=>{const t=find(full(s).teams,k);owner(s,t);if(t.cancelled||t.closed||today()>t.end)fail("小队已结束");if(!t.inviteExpires||today()>=t.inviteExpires){t.invite=id("code");t.inviteExpires=shiftDate(today(),7);}return {code:t.invite,expires:t.inviteExpires};});
+    },
+    dissolveTeam(k) {
+      return change(s=>{const t=find(full(s).teams,k);owner(s,t);if(t.launched||t.closed||t.cancelled)fail("仅筹队期间可以解散小队");t.cancelled=true;t.requests=[];return {cancelled:true};});
+    },
     getTeamInvitation(code) {
       const s=read();requireCity(s);const value=String(code||"").trim();
       if(!value)fail("请填写邀请码");
       const t=full(s).teams.find(t=>!t.cancelled&&t.invite===value);
       if(!t)fail("邀请码无效，请核对后重试");
+      if(t.inviteExpires&&today()>=t.inviteExpires)fail("邀请码已过期，请好友重新生成");
       return {id:t.id,name:t.name,city:t.city,start:t.start,end:t.end,max:t.max,memberCount:t.members.length,launched:t.launched,alreadyJoined:t.members.includes(s.session.userId)};
     },
     joinTeamByInvite(code) {
@@ -623,6 +631,7 @@ function createChallengeFullDomain(c) {
       if (!value) fail("请填写邀请码");
       const t = full(s).teams.find(t => !t.cancelled && t.invite === value);
       if (!t) fail("邀请码无效，请核对后重试");
+      if(t.inviteExpires&&today()>=t.inviteExpires)fail("邀请码已过期，请好友重新生成");
       const result = api.joinTeam(t.id, value);
       return { ...result, id: t.id };
     },
@@ -633,6 +642,7 @@ function createChallengeFullDomain(c) {
         available(s, t, u);
         if (t.members.includes(u) || t.requests.includes(u))
           fail("已加入或已申请");
+        if(t.method === "invite" && t.inviteExpires && today()>=t.inviteExpires)fail("邀请码已过期，请好友重新生成");
         if (t.method === "invite" && code !== t.invite) fail("邀请码不正确");
         if (t.method === "approval") t.requests.push(u);
         else addMember(t, u);
