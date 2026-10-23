@@ -701,8 +701,16 @@ function createDomain({ store, now = Date.now }) {
             name: text(input.name, "运动名称"),
             minutes: positive(input.minutes, "运动时长", 1440),
           });
-        else if (input.type === "weight")
+        else if (input.type === "weight") {
           record.kg = positive(input.kg, "体重", 350);
+          if (input.note !== undefined && (typeof input.note !== "string" || input.note.length > 120)) throw Error("状态备注最多120字");
+          record.note = (input.note || "").trim();
+          const f=ensureFull(s, today());
+          if (!Number(f.profileExtra.initialWeight)) {
+            const first=s.records.filter(r=>r.userId===userId&&r.type==="weight").sort((a,b)=>a.date.localeCompare(b.date))[0];
+            f.profileExtra.initialWeight=first?first.kg:record.kg;
+          }
+        }
         else throw new Error("记录类型无效");
         s.records.push(record);
         return record;

@@ -4,10 +4,11 @@ page({
   data: {
     type: "meal",
     foods: [], shownFoods: [], basket: [], query: "", expanded: false, selectedFood: null, grams: "100", totalKcal: "0.00", manual: false,
+    weightInitial: "—", weightTarget: "—", weightDelta: "—",
     today: "",
     slots: ["早餐", "午餐", "晚餐", "加餐"],
     slotIndex: 1,
-    form: { date: "", name: "", kcal: "", minutes: "", kg: "" },
+    form: { date: "", name: "", kcal: "", minutes: "", kg: "", note: "" },
   },
   onLoad(options) {
     const type = ["meal", "exercise", "weight"].includes(options.type)
@@ -24,6 +25,12 @@ page({
   },
   async refresh() {
     this.setData({today:bizDate(),loading:false});
+    if(this.data.type==="weight")return this.loadData(async()=>{
+      const snapshot=await service.getSnapshot();
+      if(wx.setNavigationBarTitle)wx.setNavigationBarTitle({title:"记体重"});
+      if(!snapshot.signedIn){this.weightTrend=null;this.setData({weightInitial:"—",weightTarget:"—",weightDelta:"—"});return;}
+      this.weightTrend=await service.getWeightTrend();this.updateWeightStats();
+    });
     if(this.data.type==="meal")return this.loadData(async()=>{
       const library=await service.getFoodLibrary();
       this.setData({foods:[...library.foods.map(f=>({...f,key:"food:"+f.id,foodId:f.id})),...library.recipes.map(f=>({...f,key:"recipe:"+f.id,recipeId:f.id,group:"家常食谱"}))].map(f=>({...f,kcalLabel:Number(f.kcal).toFixed(2)}))});this.filterFoods();
@@ -41,8 +48,16 @@ page({
   toggleManual(){this.setData({manual:!this.data.manual});},
   photo(){require("../../utils/page").navigate("/pages/photo/index?slot="+["breakfast","lunch","dinner","snack"][this.data.slotIndex]);},
   completeMeal(){return this.action(async()=>{if(!(await this.requireAccount()))return;if(!this.data.basket.length)return;if(!this.batchRequest)this.batchRequest="meal-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);await service.recordMealBasket({requestId:this.batchRequest,date:this.data.form.date,slot:["breakfast","lunch","dinner","snack"][this.data.slotIndex],items:this.data.basket.map(f=>({foodId:f.foodId,recipeId:f.recipeId,grams:f.grams}))});this.batchRequest=null;this.setData({basket:[],totalKcal:"0.00"});wx.showToast({title:"已记入这一餐",icon:"success"});wx.navigateBack();});},
+  updateWeightStats(){
+    const t=this.weightTrend;if(!t)return;
+    const initial=t.initialWeight||(t.records[0]&&t.records[0].kg);
+    const latest=t.records[t.records.length-1];const current=Number(this.data.form.kg)||(latest&&latest.kg);
+    const delta=initial&&current?Math.round((current-initial)*100)/100:null;
+    this.setData({weightInitial:initial||"—",weightTarget:t.targetWeight||"—",weightDelta:delta===null?"—":(delta>0?"+":"")+delta});
+  },
   input(e) {
     this.setData({ ["form." + e.currentTarget.dataset.field]: e.detail.value });
+    if(this.data.type==="weight" && e.currentTarget.dataset.field==="kg")this.updateWeightStats();
   },
   dateChange(e) {
     this.setData({ "form.date": e.detail.value });
@@ -51,7 +66,7 @@ page({
     this.setData({ slotIndex: Number(e.detail.value) });
   },
   save() {
-    this.action(async () => {
+    return this.action(async () => {
       if (!(await this.requireAccount())) return;
       await service.saveRecord(
         Object.assign({}, this.data.form, {

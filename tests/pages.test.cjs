@@ -688,3 +688,14 @@ test("meal basket calculates grams and saves all chosen foods once in the select
   input.items.pop();await service.recordMealBasket(input);await service.recordMealBasket(input);assert.equal((await service.getDiary(input.date)).meals.length,3);
  }finally{saved=previous;}
 });
+
+test("weight entry saves optional status and synchronizes initial weight and trend delta", async () => {
+ const previous=saved;try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"体重用户",city:"温州",targetWeight:60});
+  const p=loadPage("records");p.onLoad({type:"weight",date:"2026-01-02"});await p.refresh();assert.equal(p.data.weightInitial,"—");assert.equal(p.data.weightTarget,60);
+  p.input({currentTarget:{dataset:{field:"kg"}},detail:{value:"70"}});p.input({currentTarget:{dataset:{field:"note"}},detail:{value:"晨起空腹，睡得很好"}});await p.save();
+  const trend=await service.getWeightTrend();assert.equal(trend.initialWeight,70);assert.equal(trend.records[0].note,"晨起空腹，睡得很好");
+  const next=loadPage("records");next.onLoad({type:"weight"});await next.refresh();next.input({currentTarget:{dataset:{field:"kg"}},detail:{value:"69.5"}});assert.equal(next.data.weightDelta,"-0.5");
+  await assert.rejects(service.saveRecord({type:"weight",date:trend.records[0].date,kg:68,note:"a".repeat(121)}),/120/);assert.equal((await service.getWeightTrend()).records.length,1);
+ }finally{saved=previous;}
+});
