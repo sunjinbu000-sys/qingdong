@@ -464,3 +464,31 @@ test("membership without adFree requires a permanent credit for AI calls", () =>
   );
   assert.equal(f.state().recognitions.length, 3);
 });
+
+test("new plans read current health profile and cannot omit its allergy restrictions", () => {
+  const f = fixture(), a = f.api;
+  Object.assign(f.state().full.profileExtra, { sex: "男", direction: "培养习惯，温和减重", goalDays: 14, calorieGoal: 1800, healthStatus: "无 / 不适用", restrictions: ["鸡蛋"] });
+  f.state().profile.targetWeight = 74;
+  const first = a.generateAIPlan({ lossJin: 0, start: "18:00", end: "18:30", restrictions: "" });
+  assert.equal(first.days.length, 14);
+  assert.equal(first.profileBasis.calorieGoal, 1800);
+  assert.equal(first.days[0].totalKcal, 1800);
+  assert.deepEqual(first.restrictions, ["鸡蛋"]);
+  assert(!JSON.stringify(first.days).includes("鸡蛋"));
+  f.state().full.profileExtra.calorieGoal = 2100;
+  f.state().records.push({ id: "new-weight", userId: "me", type: "weight", date: "2026-10-21", kg: 76, createdAt: 1 });
+  const second = a.generateAIPlan({ days: 7, lossJin: 0, start: "18:00", end: "18:30", restrictions: "牛奶" });
+  assert.equal(second.profileBasis.weight, 76);
+  assert.equal(second.days[0].totalKcal, 2100);
+  assert.deepEqual(second.restrictions, ["鸡蛋", "牛奶"]);
+  assert.equal(a.getAIPlans().find(p => p.id === first.id).profileBasis.calorieGoal, 1800);
+});
+test("record-only profile ignores quantitative loss and does not apply calorie target", () => {
+  const f = fixture(), a = f.api;
+  Object.assign(f.state().full.profileExtra, { direction: "仅记录日常", calorieGoal: 2100 });
+  const p = a.generateAIPlan({ days: 7, lossJin: 10, start: "18:00", end: "18:30" });
+  assert.equal(p.mode, "review");
+  assert.equal(p.request.lossJin, 0);
+  assert.equal(p.profileBasis.calorieApplied, false);
+  assert.equal(p.days[0].exercise.minutes, 0);
+});

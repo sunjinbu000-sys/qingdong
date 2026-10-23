@@ -307,6 +307,8 @@ function createGrowthFullDomain(ctx) {
       { name: pick(proteins), grams: 100 },
       { name: pick(veg), grams: 200 },
     ];
+    const scale = Math.max(1500, minIntake) / 1500;
+    ingredients.forEach(item => { item.grams = Math.round(item.grams * scale); });
     return {
       slot,
       title: ingredients.map((x) => x.name).join("＋"),
@@ -316,9 +318,9 @@ function createGrowthFullDomain(ctx) {
         "核对食材配料与过敏原；份量仅为演示。",
       ],
       kcal: Math.ceil(Math.max(1500, minIntake) / 3),
-      protein: 28,
-      carbohydrate: 65,
-      fat: 15,
+      protein: Math.round(28 * scale),
+      carbohydrate: Math.round(65 * scale),
+      fat: Math.round(15 * scale),
     };
   }
   function profile(s) {
@@ -343,6 +345,7 @@ function createGrowthFullDomain(ctx) {
     return p;
   }
   const api = {
+    getPlanProfile() { const s = read(); login(s); return copy(profile(s)); },
     getRecognitionAccess() {
       const s = read(),
         f = init(s);
@@ -393,7 +396,7 @@ function createGrowthFullDomain(ctx) {
           a = f.ai;
         const p = profile(s);
         const days = integer(
-          input.days,
+          input.days === undefined ? (p.goalDays || 7) : input.days,
           "计划天数",
           1,
           Math.min(a.config.maxDays, 1096),
@@ -403,7 +406,7 @@ function createGrowthFullDomain(ctx) {
         const age = integer(p.age, "年龄", 1, 120),
           height = positive(p.height, "身高", 250),
           weight = positive(p.weight, "体重", 350),
-          loss = Number(input.lossJin || 0);
+          loss = p.direction === "仅记录日常" || p.direction === "保持体重，规律生活" ? 0 : Number(input.lossJin || 0);
         if (!Number.isFinite(loss) || loss < 0 || loss > 100)
           throw Error("目标斤数无效");
         const re = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
@@ -414,6 +417,7 @@ function createGrowthFullDomain(ctx) {
         if (duration < 5 || duration > 240)
           throw Error("活动时段须为5–240分钟");
         const review =
+          p.direction === "仅记录日常" ||
           age < 18 ||
           age >= 65 ||
           weight / (height / 100) ** 2 < 24 ||
@@ -425,15 +429,13 @@ function createGrowthFullDomain(ctx) {
             (weight - loss * 0.5) / (height / 100) ** 2 < 18.5)
         )
           throw Error("减重目标过快或过低，请延长周期");
-        const terms = restrictionList(
-          input.restrictions === undefined
-            ? p.restrictions
-            : input.restrictions,
-        );
+        const terms = [...new Set([...restrictionList(p.restrictions || []), ...restrictionList(input.restrictions || [])])];
+        const calorieBudget = !review && Number(p.calorieGoal) > 0 ? Number(p.calorieGoal) : a.config.minIntake;
+        if (!review && Number(p.calorieGoal) > 0 && calorieBudget < a.config.minIntake) throw Error("档案热量目标低于当前计划配置下限，请先调整档案或使用记录模式");
         if (terms.join("").length > 300) throw Error("饮食限制最多300字");
         const result = Array.from({ length: days }, (_, i) => {
           const meals = ["breakfast", "lunch", "dinner"].map((slot, j) =>
-            meal(terms, i + j, slot, a.config.minIntake),
+            meal(terms, i + j, slot, calorieBudget),
           );
           return {
             date: add(today(), i),
@@ -457,6 +459,12 @@ function createGrowthFullDomain(ctx) {
           end: add(today(), days - 1),
           request: { days, lossJin: loss, start: input.start, end: input.end },
           profile: copy(p),
+          profileBasis: {
+            age, sex: p.sex || "未设置", height, weight,
+            targetWeight: p.targetWeight || null, direction: p.direction || "未设置", healthStatus: p.healthStatus || "无 / 不适用",
+            calorieGoal: p.calorieGoal || null, calorieApplied: !review && Number(p.calorieGoal) > 0,
+            restrictions: terms, generatedAt: now(),
+          },
           restrictions: terms,
           mode: review ? "review" : "general",
           notice:

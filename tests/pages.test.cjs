@@ -473,3 +473,11 @@ test("health form selectors show every option, confirm correctly, and cancel wit
     }
   }
 });
+
+test("opening historical plan does not overwrite current profile restrictions", () => {
+  const p = loadPage("ai-plan");
+  p.setData({ restrictions: "牛奶", selected: 0 });
+  p.showPlan({ id: "old", days: [{ date: "2026-10-20", meals: [] }], restrictions: ["鸡蛋"] });
+  assert.equal(p.data.restrictions, "牛奶");
+  assert.equal(p.data.plan.id, "old");
+});

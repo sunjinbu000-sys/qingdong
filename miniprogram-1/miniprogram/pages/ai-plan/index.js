@@ -11,6 +11,7 @@ page({
     end: "18:30",
     restrictions: "",
     selected: 0,
+    profile: {},
     taskTypes: [
       { id: "signin", label: "签到" },
       { id: "photo", label: "拍照记录" },
@@ -23,7 +24,8 @@ page({
       const plans = await service.getAIPlans(),
         access = await service.getRecognitionAccess();
       this.plans = plans;
-      const extra = await service.getExtendedProfile();
+      const extra = await service.getPlanProfile();
+      const recordOnly = Number(extra.age) < 18 || Number(extra.age) >= 65 || extra.special || (extra.conditions && extra.conditions !== "无") || (extra.weight && extra.height && extra.weight / (extra.height / 100) ** 2 < 24) || extra.direction === "仅记录日常";
       this.setData({
         plans: plans.map((p) => ({
           id: p.id,
@@ -32,6 +34,10 @@ page({
           closedOn: p.closedOn,
         })),
         access,
+        profile: extra,
+        days: extra.goalDays || 7,
+        lossJin: !recordOnly && extra.direction !== "保持体重，规律生活" && extra.targetWeight && extra.weight ? Math.max(0, Math.round((extra.weight - extra.targetWeight) * 20) / 10) : 0,
+        recordOnly,
         restrictions: (extra.restrictions || []).join("、"),
       });
       if (plans.length) this.showPlan(plans[0]);
@@ -52,7 +58,7 @@ page({
       plan: safe,
       selected: index,
       day: p.days[index],
-      restrictions: p.restrictions.join("、"),
+
     });
   },
   selectDay(e) {
@@ -60,7 +66,7 @@ page({
     this.setData({ selected: index, day: this.localPlan.days[index] });
   },
   generate() {
-    this.action(async () => {
+    return this.action(async () => {
       const p = await service.generateAIPlan({
         days: Number(this.data.days),
         lossJin: Number(this.data.lossJin),
