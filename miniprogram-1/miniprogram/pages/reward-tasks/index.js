@@ -4,6 +4,8 @@ page({
     tasks: [],
     shown: [],
     filter: "all",
+    filterLabel: "全部奖励",
+    dropdownOpen: false,
     types: [
       { key: "all", label: "全部" },
       { key: "checkin", label: "签到" },
@@ -29,8 +31,11 @@ page({
       ),
     });
   },
+  toggleDropdown() { this.setData({ dropdownOpen: !this.data.dropdownOpen }); },
   filter(e) {
-    this.setData({ filter: e.currentTarget.dataset.key });
+    const selected = this.data.types.find(t => t.key === e.currentTarget.dataset.key);
+    if (!selected) return;
+    this.setData({ filter: selected.key, filterLabel: selected.key === "all" ? "全部奖励" : selected.label + "奖励", dropdownOpen: false });
     this.applyFilter();
   },
   goTask(e) {

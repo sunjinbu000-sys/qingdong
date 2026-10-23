@@ -666,3 +666,9 @@ test("team creation defaults to five invite-only members over seven days and ret
  p.tasks({detail:{value:["signin","weight"]}});assert.deepEqual(p.data.form.tasks,["signin","weight"]);
  p.toggleAdvanced();assert.equal(p.data.advanced,true);
 });
+
+test("reward dropdown filters the matching category and closes on selection", async () => {
+ const p=loadPage("reward-tasks");await p.refresh();
+ p.toggleDropdown();assert.equal(p.data.dropdownOpen,true);
+ for(const type of p.data.types){p.filter({currentTarget:{dataset:{key:type.key}}});assert.equal(p.data.dropdownOpen,false);assert(p.data.shown.every(t=>type.key==="all"||t.type===type.key));assert.equal(p.data.filterLabel,type.key==="all"?"全部奖励":type.label+"奖励");}
+});
