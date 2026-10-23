@@ -223,6 +223,7 @@ test("native forms create a team, process applications and pass complete event c
     );
     vm.runInNewContext(fs.readFileSync(filename, "utf8"), {
       require: () => ({
+        validDate: require("../miniprogram-1/miniprogram/utils/date").validDate,
         service,
         navigate: (url) => {
           navigated = url;
@@ -262,6 +263,9 @@ test("native forms create a team, process applications and pass complete event c
       },
     },
   });
+  assert.equal(calls.length, 0);
+  assert.equal(team.data.rulesOpen, true);
+  await team.confirmCreate();
   assert.equal(calls[0].name, "同行");
   assert.equal(navigated, "/pages/team-detail/index?id=new-team");
   const event = load("event-detail", {
