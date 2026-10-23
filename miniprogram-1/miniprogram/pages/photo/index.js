@@ -272,7 +272,7 @@ page({
       c.setFontSize(11); c.setFillStyle("#9b8cae"); c.fillText("仅本机演示，照片估算不能代替专业建议。", 18, 382);
       await new Promise(resolve => c.draw(false, resolve));
       const poster = await new Promise((resolve, reject) => wx.canvasToTempFilePath({ canvasId: "mealReportPoster", success: resolve, fail: () => reject(Error("海报生成失败，请在手机上重试")) }, this));
-      wx.previewImage({ current: poster.tempFilePath, urls: [poster.tempFilePath] });
+      await require("../../utils/share-image").shareImage(wx, poster.tempFilePath);
     });
   },
   editInput(e) {

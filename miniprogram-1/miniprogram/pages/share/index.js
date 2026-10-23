@@ -64,20 +64,7 @@ page({
   preview() {
     wx.previewImage({ current: this.data.poster, urls: [this.data.poster] });
   },
-  save() {
-    this.action(
-      () =>
-        new Promise((resolve, reject) =>
-          wx.saveImageToPhotosAlbum({
-            filePath: this.data.poster,
-            success: () => {
-              wx.showToast({ title: "海报已保存" });
-              resolve();
-            },
-            fail: () =>
-              reject(Error("未能保存，请检查相册权限或使用预览长按保存")),
-          }),
-        ),
-    );
+  share() {
+    return this.action(() => require("../../utils/share-image").shareImage(wx, this.data.poster));
   },
 });
