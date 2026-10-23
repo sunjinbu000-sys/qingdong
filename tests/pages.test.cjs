@@ -676,3 +676,15 @@ test("reward dropdown filters the matching category and closes on selection", as
  p.toggleDropdown();assert.equal(p.data.dropdownOpen,true);
  for(const type of p.data.types){p.filter({currentTarget:{dataset:{key:type.key}}});assert.equal(p.data.dropdownOpen,false);assert(p.data.shown.every(t=>type.key==="all"||t.type===type.key));assert.equal(p.data.filterLabel,type.key==="all"?"全部奖励":type.label+"奖励");}
 });
+
+test("meal basket calculates grams and saves all chosen foods once in the selected slot", async () => {
+ const previous=saved;try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"选食用户",city:"温州"});
+  const p=loadPage("records");p.onLoad({type:"meal",date:"2026-01-02",slot:"breakfast"});await p.refresh();
+  p.selectFood({currentTarget:{dataset:{key:"food:rice"}}});p.grams({detail:{value:"200"}});p.addFood();assert.equal(p.data.totalKcal,"232.00");
+  p.selectFood({currentTarget:{dataset:{key:"food:egg"}}});p.grams({detail:{value:"50"}});p.addFood();assert.equal(p.data.basket.length,2);assert.equal(p.data.totalKcal,"303.50");
+  await p.completeMeal();const diary=await service.getDiary("2026-01-02");assert.equal(diary.meals.length,2);assert(diary.meals.every(r=>r.slot==="breakfast"));assert.equal(p.data.basket.length,0);
+  const input={requestId:"atomic-meal",date:"2026-01-02",slot:"lunch",items:[{foodId:"rice",grams:100},{foodId:"not-a-food",grams:100}]};await assert.rejects(service.recordMealBasket(input),/不存在/);assert.equal((await service.getDiary(input.date)).meals.length,2);
+  input.items.pop();await service.recordMealBasket(input);await service.recordMealBasket(input);assert.equal((await service.getDiary(input.date)).meals.length,3);
+ }finally{saved=previous;}
+});

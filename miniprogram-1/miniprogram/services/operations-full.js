@@ -630,6 +630,22 @@ function createOperationsDomain(c) {
         restrictions: f.profileExtra.restrictions,
       };
     },
+    recordMealBasket(input) {
+      return change(s => {
+        const userId=c.requireCity(s), requestId=text(input.requestId,"请求编号",100);
+        const existing=s.records.filter(r=>r.userId===userId&&r.mealBatchId===requestId);if(existing.length)return existing;
+        if(!validDate(input.date)||input.date>today()||input.date<"2000-01-01")throw Error("日期无效");
+        if(!["breakfast","lunch","dinner","snack"].includes(input.slot))throw Error("餐次无效");
+        if(!Array.isArray(input.items)||!input.items.length||input.items.length>50)throw Error("请选择1–50种食物");
+        const records=input.items.map(item=>{
+          const recipe=item.recipeId&&Health.recipes.find(r=>r.id===item.recipeId);
+          const food=recipe?Health.recipeFood(recipe):Health.foods.find(f=>f.id===item.foodId);
+          if(!food)throw Error("食物不存在");
+          const grams=positive(item.grams,"克数",10000),n=Health.nutrients(food,grams);
+          return {id:id("record"),userId,type:"meal",date:input.date,slot:input.slot,name:food.name+" "+grams+"g",foodId:item.foodId||null,recipeId:item.recipeId||null,grams,...n,source:recipe?"recipe":"food-library",mealBatchId:requestId,createdAt:c.now()};
+        });s.records.push(...records);return records;
+      });
+    },
     recordFoodPortion(input) {
       return change((s) => {
         const userId = c.requireCity(s);
