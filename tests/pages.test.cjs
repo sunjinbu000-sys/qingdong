@@ -547,3 +547,23 @@ test("membership selection retains catalog prices and requires service agreement
   p.agreementChanged({detail:{value:[]}});
   assert.equal(p.data.agreed, false);
 });
+
+test("photo report opens from history without a new recognition or charge", async () => {
+  const previous = saved;
+  try {
+    saved = undefined;
+    const service = require("../miniprogram-1/miniprogram/services/index");
+    await service.loginDemo();
+    await service.saveProfile({nickname:"历史用户", city:"温州"});
+    const report = await service.analyzeFoodPhoto({imagePath:"/owned/history.jpg",requestId:"history-open",mockScenario:"meal"});
+    const before = await service.getRecognitionAccess();
+    const p = loadPage("photo");
+    p.onLoad({analysisId:report.id});
+    await p.refresh();
+    assert.equal(p.data.screen,"result");
+    assert.equal(p.data.result.id,report.id);
+    assert.equal(p.data.preview,report.imagePath);
+    assert.equal((await service.getRecognitionAccess()).remaining,before.remaining);
+    assert.equal((await service.getDiary(report.date)).meals.length,0);
+  } finally { saved = previous; }
+});

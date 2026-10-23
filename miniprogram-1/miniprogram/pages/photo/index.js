@@ -39,6 +39,7 @@ page({
     needsAccount: false,
   },
   onLoad(query = {}) {
+    this.historyAnalysisId = query.analysisId || "";
     this.setData({
       planId: query.planId || "",
       selectedSlot: slots[query.slot] ? query.slot : mealSlot(Date.now()),
@@ -57,6 +58,11 @@ page({
           ? await service.getMembership()
           : { remaining: 0, dailyLimit: 0 },
       });
+      if (s.signedIn && this.historyAnalysisId) {
+        const result = await service.getFoodAnalysis(this.historyAnalysisId);
+        this.setData({ result, screen: "result", preview: result.imagePath, slotLabel: slots[result.slot], selectedSlot: result.slot, editName: result.name, portionInputs: result.ingredients.map(x => String(x.grams)), suggestions: result.suggestions || { meals: [], notice: "此历史报告未归档三餐建议，可到轻动计划查看当前建议。" } });
+        if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({ title: "营养分析结果" });
+      }
       if (!s.signedIn && !(this.pending && this.pending.guest)) {
         const hadPreview = !!this.data.preview;
         this.pending = null;
@@ -95,6 +101,7 @@ page({
     });
   },
   async acceptImage(path) {
+    this.historyAnalysisId = "";
     const snapshot = await service.getSnapshot();
     this.pending = {
       requestId:
@@ -212,13 +219,15 @@ page({
     try {
       if (!pending.imagePath) pending.imagePath = await persistFoodImage(wx, pending.tempFilePath, pending.requestId);
       this.setData({ preview: pending.imagePath });
-      const [result] = await Promise.all([
+      let [result] = await Promise.all([
         service.analyzeFoodPhoto({ imagePath: pending.imagePath, requestId: pending.requestId, slot: pending.slot, mockScenario: this.data.mockScenario }),
         this.data.access.mock ? new Promise(resolve => setTimeout(resolve, 850)) : Promise.resolve(),
       ]);
       let suggestions;
       try { suggestions = await service.getReportMealSuggestions(shiftDate(result.date, 1)); }
       catch (_) { suggestions = { date: shiftDate(result.date, 1), meals: [], notice: "当前档案限制下暂未生成可用参考搭配，请在轻动计划中完善或调整。" }; }
+      result = await service.archiveFoodAnalysisSuggestions(result.id, suggestions);
+      this.historyAnalysisId = "";
       this.setData({ result, screen: "result", preview: pending.imagePath, slotLabel: slots[result.slot], selectedSlot: result.slot, needsAccount: false, editName: result.name, portionInputs: result.ingredients.map(x => String(x.grams)), showPortions: false, suggestions });
       this.pending = null;
       if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({ title: "营养分析结果" });

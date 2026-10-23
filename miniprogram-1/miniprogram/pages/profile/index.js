@@ -4,10 +4,9 @@ page({
     menuGroups: [
       { title: "健康与记录", items: [
         { title: "个人与健康档案", subtitle: "昵称、城市、身高与目标", route: "account", icon: "sprout" },
-        { title: "完整健康档案", route: "health-profile", icon: "sprout" },
         { title: "我的健康日记", subtitle: "按日期查看饮食、运动和健康记录", route: "health", icon: "camera" },
         { title: "体重与营养变化", route: "health-overview", icon: "weight" },
-        { title: "识餐照片档案", subtitle: "查看照片与营养分析", route: "photo-history", icon: "camera" },
+        { title: "拍照识餐历史", subtitle: "查看照片与营养分析", route: "photo-history", icon: "camera" },
       ] },
       { title: "轻动与成长", items: [
         { title: "我的小队", route: "team", icon: "flag" },

@@ -64,3 +64,28 @@ test('report suggestions do not reuse a plan that conflicts with updated profile
   assert.equal(suggestions.source, 'reference');
   assert(!suggestions.meals.some(m => m.ingredients.some(i => i.name === excluded)));
 });
+
+test('photo history includes unknown and unsaved reports, isolates accounts and never charges for reopening', () => {
+  const f = setup(), d = f.domain; f.login();
+  const unknown = d.analyzeFoodPhoto({imagePath:'/owned/unknown.jpg',requestId:'history-unknown'});
+  const meal = d.analyzeFoodPhoto({imagePath:'/owned/meal.jpg',requestId:'history-meal',mockScenario:'meal'});
+  const remaining = d.getRecognitionAccess().remaining;
+  assert.equal(d.getFoodAnalysisHistory().length, 2);
+  const suggestions = {date:'2026-10-24',meals:[{title:'原建议'}]};
+  d.archiveFoodAnalysisSuggestions(meal.id, suggestions);
+  d.archiveFoodAnalysisSuggestions(meal.id, {meals:[]});
+  assert.deepEqual(d.getFoodAnalysis(meal.id).suggestions,suggestions);
+  assert.equal(d.getFoodAnalysis(unknown.id).kcal,null);
+  d.saveFoodAnalysis(meal.id);
+  assert.equal(d.getFoodAnalysisHistory().length,2);
+  assert.equal(d.getRecognitionAccess().remaining,remaining);
+  const state=f.store.read();state.session.userId='someone-else';f.store.write(state);
+  assert.equal(d.getFoodAnalysisHistory().length,0);
+  assert.throws(()=>d.getFoodAnalysis(meal.id),/不存在/);
+  assert.throws(()=>d.removeFoodAnalysis(meal.id),/不存在/);
+  state.session.userId=meal.userId;f.store.write(state);
+  d.removeFoodAnalysis(meal.id);
+  assert.equal(d.getFoodAnalysisHistory().length,1);
+  assert.equal(d.getDiary(meal.date).meals.length,0);
+  assert.throws(()=>d.getFoodAnalysis(meal.id),/不存在/);
+});

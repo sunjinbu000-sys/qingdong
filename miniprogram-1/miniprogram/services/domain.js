@@ -334,6 +334,35 @@ function createDomain({ store, now = Date.now }) {
         return report;
       });
     },
+    getFoodAnalysisHistory() {
+      const s = read(), u = requireLogin(s);
+      const reports = s.recognitions.filter(r => r.userId === u && r.imagePath && r.ingredients && !r.historyDeleted);
+      const linked = new Set(reports.map(r => r.recordId).filter(Boolean));
+      const legacy = s.records.filter(r => r.userId === u && r.type === "meal" && r.imagePath && !linked.has(r.id)).map(r => ({ ...r, legacy: true }));
+      return reports.concat(legacy).sort((a,b) => String(b.date).localeCompare(String(a.date)) || String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+    },
+    getFoodAnalysis(analysisId) {
+      const s = read(), u = requireLogin(s), report = s.recognitions.find(r => r.id === analysisId && r.userId === u && r.ingredients && !r.historyDeleted);
+      if (!report) throw Error("报告不存在或已移除");
+      return JSON.parse(JSON.stringify(report));
+    },
+    archiveFoodAnalysisSuggestions(analysisId, suggestions) {
+      return change(s => {
+        const u = requireLogin(s), report = s.recognitions.find(r => r.id === analysisId && r.userId === u && r.ingredients && !r.historyDeleted);
+        if (!report) throw Error("报告不存在");
+        if (!report.suggestions) report.suggestions = JSON.parse(JSON.stringify(suggestions));
+        return report;
+      });
+    },
+    removeFoodAnalysis(analysisId) {
+      return change(s => {
+        const u = requireLogin(s), report = s.recognitions.find(r => r.id === analysisId && r.userId === u && r.ingredients && !r.historyDeleted);
+        if (!report) throw Error("报告不存在");
+        report.historyDeleted = true;
+        if (report.recordId) s.records = s.records.filter(r => !(r.id === report.recordId && r.userId === u));
+        return { removed: true };
+      });
+    },
     updateFoodAnalysis(input) {
       return change(s => {
         const userId = requireLogin(s), report = s.recognitions.find(r => r.id === input.analysisId && r.userId === userId);
