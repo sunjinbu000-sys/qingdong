@@ -56,6 +56,7 @@
     "pages/team-invite/index",
     "pages/web-link/index",
     "pages/weight/index",
+    "pages/weight-trend/index",
     "pages/weight-review/index",
     "pages/word-ops/index"
   ],

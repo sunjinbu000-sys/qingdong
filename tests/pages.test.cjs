@@ -384,3 +384,21 @@ test("rank switches national and own city while retaining the selected metric", 
     assert.equal(queries.at(-1).scope, "national");
   } finally { service.getSnapshot = oldSnapshot; service.getFullRank = oldRank; }
 });
+
+test("weight trend limits actual points to the chosen range and keeps latest weight and goal", () => {
+  const p = loadPage("weight-trend");
+  p.today = "2026-10-23";
+  p.source = { height: 170, initialWeight: 70, targetWeight: 65, records: [
+    { id: "old", date: "2026-10-01", kg: 70 },
+    { id: "new", date: "2026-10-23", kg: 68 },
+  ] };
+  p.renderTrend();
+  assert.equal(p.data.points.length, 1);
+  assert.equal(p.data.lines.length, 0);
+  assert.equal(p.data.current, 68);
+  assert.equal(p.data.goalGap, "3.0");
+  assert.equal(p.data.difference, "-2.0 kg");
+  p.chooseRange({ currentTarget: { dataset: { days: 30 } } });
+  assert.equal(p.data.points.length, 2);
+  assert.equal(p.data.lines.length, 1);
+});

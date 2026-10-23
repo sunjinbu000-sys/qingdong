@@ -558,6 +558,15 @@ function createOperationsDomain(c) {
         .slice()
         .reverse();
     },
+    getWeightTrend() {
+      const s = read(), u = requireLogin(s), f = full(s);
+      return {
+        records: s.records.filter(r => r.userId === u && r.type === "weight").sort((a, b) => a.date.localeCompare(b.date)),
+        initialWeight: Number(f.profileExtra.initialWeight) || null,
+        targetWeight: Number(s.profile.targetWeight) || null,
+        height: Number(s.profile.height) || null,
+      };
+    },
     getProfileSummary() {
       const s = read(),
         u = requireLogin(s),
