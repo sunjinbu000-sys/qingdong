@@ -1,6 +1,6 @@
 # 首页八个入口图标
 
-使用内置 imagegen 工具生成，透明背景，144 × 144 WebP。保存位置：`miniprogram-1/miniprogram/images/home/shortcuts/`。八张合计 43,584 字节。
+使用内置 imagegen 工具生成，透明背景，144 × 144 PNG。保存位置：`miniprogram-1/miniprogram/images/home/shortcuts/`。八张合计 47,991 字节。
 
 依次对应轻友论坛、我的小队、榜单、AI长计划、活动广场、邀请好友、成就徽章、全部功能，原有跳转保持不变。
 
@@ -40,3 +40,7 @@ Create ONE polished 3D icon for a mobile app shortcut, matching a friendly soft-
 
 Create ONE polished 3D icon for a mobile app shortcut, matching a friendly soft-clay / glossy toy style. Isolated centered object on a truly transparent background. Square canvas. No words, no letters, no text, no numbers, no UI card, no background rectangle or colored circle. Chunky rounded shapes, clean silhouette, soft studio light from upper-left, subtle ambient shadow, bright pastel colors, premium small app icon quality. Object occupies about 80% of square with safe margins; understandable at 44 pixels. Consistent soft 3D perspective viewed slightly from above. Four rounded glossy app tiles in a neat 2 by 2 cluster, pastel blue, lavender, mint green and warm golden yellow, slightly raised, representing all functions. No symbols or letters on tiles.
 
+
+## 手机预览兼容修正
+
+八张入口图标已从 WebP 转为 PNG，保留透明通道，避免不同手机对本地 WebP 解码支持不一致。需要重新生成预览二维码验证真机显示。
