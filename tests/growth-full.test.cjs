@@ -486,9 +486,37 @@ test("new plans read current health profile and cannot omit its allergy restrict
 test("record-only profile ignores quantitative loss and does not apply calorie target", () => {
   const f = fixture(), a = f.api;
   Object.assign(f.state().full.profileExtra, { direction: "仅记录日常", calorieGoal: 2100 });
-  const p = a.generateAIPlan({ days: 7, lossJin: 10, start: "18:00", end: "18:30" });
+  const p = a.generateAIPlan({ days: 7, lossJin: 10, start: "18:00", end: "18:30", allowRecordOnly: true });
   assert.equal(p.mode, "review");
   assert.equal(p.request.lossJin, 0);
   assert.equal(p.profileBasis.calorieApplied, false);
   assert.equal(p.days[0].exercise.minutes, 0);
+});
+
+test("7 days 3 jin is explained correctly, can extend to 21 days or confirm record-only", () => {
+  const f = fixture(), a = f.api;
+  const input = { days: 7, lossJin: 3, start: "18:00", end: "18:30" };
+  const quota = a.getRecognitionAccess().freeCredits;
+  const assessment = a.assessPlanGoal(input);
+  assert.equal(assessment.lossKg, 1.5);
+  assert.equal(assessment.weeklyKg, 1.5);
+  assert.equal(assessment.weeklyLimitKg, 0.5);
+  assert.equal(assessment.suggestedDays, 21);
+  assert.equal(a.getRecognitionAccess().freeCredits, quota);
+  assert.throws(() => a.generateAIPlan(input), /每周1.5公斤/);
+  assert.equal(a.getRecognitionAccess().freeCredits, quota);
+  const accepted = a.generateAIPlan({ ...input, allowRecordOnly: true });
+  assert.equal(accepted.mode, "review");
+  assert.equal(accepted.request.lossJin, 0);
+  assert.equal(accepted.request.requestedLossJin, 3);
+  assert.equal(a.assessPlanGoal({ ...input, days: 21 }).tooFast, false);
+});
+test("large real-life goals never become automatic rapid-loss prescriptions, invalid goals are blocked", () => {
+  const f = fixture(), a = f.api;
+  const fast = a.assessPlanGoal({ days: 30, lossJin: 30 });
+  assert.equal(fast.lossKg, 15);
+  assert.equal(fast.tooFast, true);
+  assert.equal(fast.effectiveLossJin, 0);
+  for (const invalid of [{ days: 0, lossJin: 3 }, { days: 7, lossJin: -1 }, { days: 7, lossJin: 200 }, { days: 7.5, lossJin: 1 }]) assert.throws(() => a.assessPlanGoal(invalid));
+  assert.throws(() => a.generateAIPlan({ days: 90, lossJin: 100, start: "18:00", end: "18:30", allowRecordOnly: true }), /调整目标体重/);
 });

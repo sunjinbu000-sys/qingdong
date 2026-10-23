@@ -12,6 +12,7 @@ page({
     restrictions: "",
     selected: 0,
     profile: {},
+    goalAssessment: null,
     taskTypes: [
       { id: "signin", label: "签到" },
       { id: "photo", label: "拍照记录" },
@@ -41,11 +42,19 @@ page({
         restrictions: (extra.restrictions || []).join("、"),
       });
       if (plans.length) this.showPlan(plans[0]);
+      await this.assessGoal();
     });
   },
   input(e) {
     this.setData({ [e.currentTarget.dataset.key]: e.detail.value });
+    if (["days", "lossJin"].includes(e.currentTarget.dataset.key)) this.assessGoal();
   },
+  async assessGoal() {
+    const revision = (this.goalRevision || 0) + 1; this.goalRevision = revision;
+    try { const assessment = await service.assessPlanGoal({ days: Number(this.data.days), lossJin: Number(this.data.lossJin) }); if (revision === this.goalRevision) this.setData({ goalAssessment: assessment, goalError: "" }); }
+    catch (error) { if (revision === this.goalRevision) this.setData({ goalAssessment: null, goalError: error.message }); }
+  },
+  extendPeriod() { this.setData({ days: this.data.goalAssessment.suggestedDays }); return this.assessGoal(); },
   showPlan(p) {
     this.localPlan = p;
     const index = Math.min(this.data.selected, p.days.length - 1),
@@ -67,13 +76,16 @@ page({
   },
   generate() {
     return this.action(async () => {
-      const p = await service.generateAIPlan({
-        days: Number(this.data.days),
-        lossJin: Number(this.data.lossJin),
-        start: this.data.start,
-        end: this.data.end,
-        restrictions: this.data.restrictions,
-      });
+      const input = { days: Number(this.data.days), lossJin: Number(this.data.lossJin), start: this.data.start, end: this.data.end, restrictions: this.data.restrictions };
+      const assessment = await service.assessPlanGoal(input);
+      this.setData({ goalAssessment: assessment });
+      if (assessment.tooLow) throw Error(assessment.message + "请先调整目标体重。");
+      if (assessment.tooFast && assessment.requestedLossJin > 0) {
+        const accepted = await new Promise(resolve => wx.showModal({ title: "确认计划方式", content: assessment.message + "实际体重变化不受本规则限制。选择记录模式会保留你的目标，但不据此制定快速减重或低热量方案，也不承诺达成。", confirmText: "记录模式", cancelText: "调整目标", success: r => resolve(r.confirm), fail: () => resolve(false) }));
+        if (!accepted) return;
+        input.allowRecordOnly = true;
+      }
+      const p = await service.generateAIPlan(input);
       this.setData({ selected: 0 });
       this.showPlan(p);
       this.plans = await service.getAIPlans();

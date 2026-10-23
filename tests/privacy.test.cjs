@@ -93,3 +93,11 @@ test("personal health form saves consent and current weight atomically and restr
   assert.throws(() => d.saveProfile({ ...form, age: 22, healthConsent: true, calorieGoal: -1 }), /热量/);
   assert.deepEqual(f.store.read(), before);
 });
+
+test("actual weight records are not rejected by automatic plan speed limits", () => {
+  const f = setup(), d = f.domain; f.login();
+  d.saveRecord({ type: "weight", date: "2026-10-01", kg: 75 });
+  d.saveRecord({ type: "weight", date: "2026-10-21", kg: 60 });
+  assert.equal(d.getWeightTrend().records.length, 2);
+  assert.equal(d.getWeightTrend().records.at(-1).kg, 60);
+});

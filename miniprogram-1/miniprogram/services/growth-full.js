@@ -1,3 +1,4 @@
+const { assessPlanGoal } = require("./plan-goal");
 const { membershipView } = require("./membership");
 const add = (d, n) =>
   new Date(Date.parse(d + "T00:00:00Z") + n * 86400000)
@@ -345,6 +346,7 @@ function createGrowthFullDomain(ctx) {
     return p;
   }
   const api = {
+    assessPlanGoal(input) { const s = read(); const f = init(s); login(s); return assessPlanGoal(profile(s), input, f.ai.config); },
     getPlanProfile() { const s = read(); login(s); return copy(profile(s)); },
     getRecognitionAccess() {
       const s = read(),
@@ -416,19 +418,10 @@ function createGrowthFullDomain(ctx) {
           duration = (mins(input.end) - mins(input.start) + 1440) % 1440;
         if (duration < 5 || duration > 240)
           throw Error("活动时段须为5–240分钟");
-        const review =
-          p.direction === "仅记录日常" ||
-          age < 18 ||
-          age >= 65 ||
-          weight / (height / 100) ** 2 < 24 ||
-          !!p.special ||
-          (!!p.conditions && p.conditions !== "无");
-        if (
-          !review &&
-          ((loss * 0.5) / (days / 7) > a.config.maxWeekly ||
-            (weight - loss * 0.5) / (height / 100) ** 2 < 18.5)
-        )
-          throw Error("减重目标过快或过低，请延长周期");
+        const goalAssessment = assessPlanGoal(p, input, a.config);
+        const review = goalAssessment.needsReview;
+        if (goalAssessment.tooLow) throw Error(goalAssessment.message + "请调整目标体重，不能生成此减重目标。");
+        if (goalAssessment.tooFast && !input.allowRecordOnly) throw Error(goalAssessment.message + "可调整目标，或确认改为记录模式。");
         const terms = [...new Set([...restrictionList(p.restrictions || []), ...restrictionList(input.restrictions || [])])];
         const calorieBudget = !review && Number(p.calorieGoal) > 0 ? Number(p.calorieGoal) : a.config.minIntake;
         if (!review && Number(p.calorieGoal) > 0 && calorieBudget < a.config.minIntake) throw Error("档案热量目标低于当前计划配置下限，请先调整档案或使用记录模式");
@@ -457,7 +450,8 @@ function createGrowthFullDomain(ctx) {
           createdAt: now(),
           start: today(),
           end: add(today(), days - 1),
-          request: { days, lossJin: loss, start: input.start, end: input.end },
+          request: { days, lossJin: goalAssessment.effectiveLossJin, requestedLossJin: goalAssessment.requestedLossJin, start: input.start, end: input.end },
+          goalAssessment,
           profile: copy(p),
           profileBasis: {
             age, sex: p.sex || "未设置", height, weight,
