@@ -746,3 +746,7 @@ test("invited guest keeps the invitation through login and joins only after conf
   await p.join();await Promise.all([p.confirmJoin(),p.confirmJoin()]);const joined=await service.getTeam(team.id);assert.equal(joined.members.length,2);assert.equal(joined.isMember,true);assert.equal(joined.isCaptain,false);assert.equal(joined.memberProfiles.find(m=>m.isMe).nickname,"好友B");assert.equal(destination,"/pages/team-detail/index?id="+team.id);assert.equal(p.data.rulesOpen,false);
  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+test("all team explanation links open scrollable rules without joining or creating", () => {
+ for(const name of ["team-editor","team-detail","team-invite","team-join"]){const p=loadPage(name);p.rules();assert.equal(p.data.rulesOpen,true,name);if(name==="team-join")assert.equal(p.data.confirmingJoin,false);if(name==="team-editor")assert.equal(p.data.creatingFromRules,false);p.closeRules();assert.equal(p.data.rulesOpen,false,name);}
+});
