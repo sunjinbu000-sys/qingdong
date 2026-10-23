@@ -243,3 +243,10 @@ test("mood topic remains its own category when saved and edited", () => {
   a.equal(post.kind,"心情宣发");
   a.equal(api.editForumPost(post.id,{text:"今天也要好好照顾自己",kind:"心情宣发"}).kind,"心情宣发");
 });
+
+test("forum accepts nine ordered images and rejects a tenth", () => {
+  const {api}=fixture(),images=Array.from({length:9},(_,i)=>"/owned/"+i+".jpg");
+  const p=api.createForumPost({images,kind:"生活分享",text:""});
+  a.deepEqual(p.images,images);
+  a.throws(()=>api.createForumPost({images:images.concat("/owned/10.jpg"),text:"",kind:"生活分享"}),/最多9/);
+});

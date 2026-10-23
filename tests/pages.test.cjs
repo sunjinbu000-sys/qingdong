@@ -588,3 +588,22 @@ test("forum composer maps topics to categories and cancels video without losing 
     assert.equal(p.data.video,"");
   } finally { Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx); }
 });
+
+test("forum batch picker preserves selected order and remaining capacity", async () => {
+  const p=loadPage("forum-editor"),oldWx={...wx}, copied=[];
+  try {
+    wx.env={USER_DATA_PATH:"/owned"};
+    wx.getFileSystemManager=()=>({copyFile:o=>{copied.push(o.srcPath);o.success();}});
+    wx.chooseMedia=o=>{assert.equal(o.count,9);o.success({tempFiles:Array.from({length:9},(_,i)=>({tempFilePath:"/tmp/selected-"+i+".jpg",size:1024}))});};
+    await p.addImage();
+    assert.equal(p.data.images.length,9);
+    assert.deepEqual(copied,Array.from({length:9},(_,i)=>"/tmp/selected-"+i+".jpg"));
+    assert.match(p.data.images[8],/-8\.jpg$/);
+    p.remove({currentTarget:{dataset:{index:3}}});
+    const retained=p.data.images.slice();
+    wx.chooseMedia=o=>{assert.equal(o.count,1);o.success({tempFiles:[{tempFilePath:"/tmp/replacement.jpg",size:1024}]});};
+    await p.addImage();
+    assert.deepEqual(p.data.images.slice(0,8),retained);
+    assert.equal(p.data.images.length,9);
+  } finally {Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});

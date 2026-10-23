@@ -13,6 +13,7 @@ page({
       });
     });
   },
+  previewImages(e) { wx.previewImage({ current:e.currentTarget.dataset.path, urls:this.data.post.images }); },
   input(e) {
     this.setData({ [e.currentTarget.dataset.key]: e.detail.value });
   },

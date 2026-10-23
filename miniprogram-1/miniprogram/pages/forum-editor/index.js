@@ -56,13 +56,14 @@ page({
   addImage() {
     return this.action(async () => {
       if (this.data.video) throw Error("图片与视频请选择一种，先移除视频后再添加图片");
-      if (this.data.images.length >= 3) throw Error("最多3张");
-      const m = require("../../utils/media");
-      let p = await m.chooseFoodImage(wx);
-      if (p) {
-        p = await m.persistFoodImage(wx, p, "forum-" + Date.now());
-        this.setData({ images: this.data.images.concat(p) });
-      }
+      const count = 9 - this.data.images.length;
+      if (count <= 0) throw Error("最多9张图片");
+      const files = await new Promise((resolve,reject) => wx.chooseMedia({count,mediaType:["image"],sourceType:["album","camera"],sizeType:["compressed"],success:r=>resolve(r.tempFiles || []),fail:e=>/cancel/i.test(e.errMsg || "")?resolve([]):reject(Error("无法打开相册，请检查授权"))}));
+      if (!files.length) return;
+      if (files.length > count || files.some(f => !f.tempFilePath || !Number.isFinite(f.size) || f.size > 8*1024*1024)) throw Error("最多9张图片，每张需小于8MB");
+      const m = require("../../utils/media"), paths = [], batch = Date.now() + "-" + Math.random().toString(36).slice(2,7);
+      for (let i=0;i<files.length;i++) paths.push(await m.persistFoodImage(wx, files[i].tempFilePath, "forum-" + batch + "-" + i));
+      this.setData({ images: this.data.images.concat(paths) });
     });
   },
   remove(e) {

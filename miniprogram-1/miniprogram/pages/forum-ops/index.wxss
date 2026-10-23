@@ -1,2 +1,4 @@
 image{width:200rpx;height:200rpx;margin:8rpx}textarea{width:100%;min-height:180rpx}input{padding:18rpx;background:#f5f7f6;margin:12rpx 0}
 .forum-video{width:100%;height:380rpx;margin:20rpx 0;border-radius:24rpx}
+
+.review-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10rpx;margin:20rpx 0}.review-photo-grid .review-grid-photo{width:100%;height:180rpx;margin:0;border-radius:14rpx}

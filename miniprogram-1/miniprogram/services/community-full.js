@@ -161,10 +161,10 @@ function createCommunityDomain(c) {
       (text.length < 5 && !images.length && !video) ||
       typeof video !== "string" || video.length > 1000 || (video && (!video.trim() || images.length > 0)) ||
       !Array.isArray(images) ||
-      images.length > 3 ||
+      images.length > 9 ||
       images.some((x) => typeof x !== "string" || !x.trim() || x.length > 1000)
     )
-      throw Error("请填写5–2000字，或上传最多3张图片/1个视频，图片和视频不能混用");
+      throw Error("请填写5–2000字，或上传最多9张图片/1个视频，图片和视频不能混用");
     if (v.title && v.title.length > 60) throw Error("标题最多60字");
     return {
       title: String(v.title || "").trim(),
