@@ -107,7 +107,7 @@ test("forum tabs, map city and mine interaction lists use separate state", async
         latitude: 28,
         longitude: 120,
       });
-    await forum.locate();
+    await forum.manualLocate();
     assert.equal(forum.data.region.city, "温州");
     assert.equal((await service.getSnapshot()).profile.city, "杭州");
     assert.equal(forum.data.posts.length, 0);
@@ -749,4 +749,14 @@ test("invited guest keeps the invitation through login and joins only after conf
 
 test("all team explanation links open scrollable rules without joining or creating", () => {
  for(const name of ["team-editor","team-detail","team-invite","team-join"]){const p=loadPage(name);p.rules();assert.equal(p.data.rulesOpen,true,name);if(name==="team-join")assert.equal(p.data.confirmingJoin,false);if(name==="team-editor")assert.equal(p.data.creatingFromRules,false);p.closeRules();assert.equal(p.data.rulesOpen,false,name);}
+});
+
+test("local forum resolves the device city and never falls back to profile or stale location after failure", async () => {
+ const previous=saved,oldWx={...wx},config=require("../miniprogram-1/miniprogram/config/index"),oldKey=config.location.tencentMapKey;
+ try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"定位用户",city:"杭州"});config.location.tencentMapKey="test-key";
+  wx.getLocation=o=>o.success({latitude:28,longitude:120});wx.request=o=>o.success({statusCode:200,data:{status:0,result:{address_component:{city:"温州市"}}}});
+  const p=loadPage("forum");await p.refresh();await p.changeTab({currentTarget:{dataset:{id:"local"}}});assert.equal(p.data.region.city,"温州");assert.equal(p.data.region.source,"gps");assert.equal((await service.getSnapshot()).profile.city,"杭州");
+  wx.getLocation=o=>o.fail({errMsg:"permission denied"});await p.locate();assert.equal(p.data.region,null);assert.equal(p.data.posts.length,0);assert.match(p.data.locationError,/授权/);await p.refresh();assert.equal(p.data.region,null);
+ }finally{saved=previous;config.location.tencentMapKey=oldKey;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });

@@ -1,5 +1,5 @@
 const { page, service, navigate } = require("../../utils/page");
-const { chooseForumCity } = require("../../utils/location");
+const { chooseForumCity, locateForumCity } = require("../../utils/location");
 page({
   data: {
     tab: "recommended",
@@ -8,6 +8,7 @@ page({
     signedIn: false,
     region: null,
     locationError: "",
+    locating: false,
     tabs: [
       { id: "recommended", label: "推荐" },
       { id: "local", label: "本地" },
@@ -22,11 +23,13 @@ page({
     ],
   },
   refresh() {
-    return this.loadData(async () => {
+    const load = this._feedReady ? async work => { this.setData({error:""}); try { await work(); } catch(error) { this.setData({error:error.message}); } } : this.loadData.bind(this);
+    return load(async () => {
       const revision = (this.revision || 0) + 1;
       this.revision = revision;
       const snapshot = await service.getSnapshot(),
-        region = await service.getForumRegion();
+        savedRegion = await service.getForumRegion();
+      const region = this.data.tab === "local" && this._locationFailed ? null : savedRegion;
       const tab = this.data.tab,
         mode = tab === "mine" ? this.data.mine : "public";
       let posts = [];
@@ -40,10 +43,15 @@ page({
           sort: tab === "recommended" || tab === "national" ? "hot" : "new",
         });
       if (this.revision !== revision) return;
+      this._feedReady = true;
       this.setData({
         signedIn: snapshot.signedIn,
         region,
-        posts,
+        posts: posts.map(post => {
+          const stamp=new Date(post.createdAt).getTime(),elapsed=Date.now()-stamp;
+          const timeLabel=Number.isFinite(stamp)&&elapsed>=0?(elapsed<60000?"刚刚":elapsed<3600000?Math.floor(elapsed/60000)+"分钟前":elapsed<86400000?Math.floor(elapsed/3600000)+"小时前":post.date):post.date;
+          return {...post,timeLabel};
+        }),
         emptyText:
           tab === "mine"
             ? mode === "liked"
@@ -59,29 +67,30 @@ page({
       });
     });
   },
-  changeTab(e) {
+  async changeTab(e) {
     const tab = e.currentTarget.dataset.id;
     if (!this.data.tabs.some((t) => t.id === tab)) return;
     this.setData({ tab, posts: [], error: "" });
+    if(tab === "local") return this.locate();
     return this.refresh();
   },
   changeMine(e) {
     this.setData({ mine: e.currentTarget.dataset.id, posts: [] });
     return this.refresh();
   },
-  locate() {
-    return this.action(async () => {
-      this.setData({ locationError: "" });
-      try {
-        const region = await chooseForumCity(wx);
-        if (!region) return;
-        await service.saveForumRegion(region);
-        await this.refresh();
-      } catch (error) {
-        this.setData({ locationError: error.message });
-      }
-    });
+  async locate() {
+    if(this.data.locating)return;
+    this._locationFailed=true;
+    this.setData({locating:true,locationError:"",region:null,posts:[]});
+    try {const region=await locateForumCity(wx);await service.saveForumRegion(region);this._locationFailed=false;await this.refresh();}
+    catch(error){this.setData({locationError:error.message});}
+    finally{this.setData({locating:false});}
   },
+  manualLocate(){return this.action(async()=>{const region=await chooseForumCity(wx);if(!region)return;await service.saveForumRegion(region);this._locationFailed=false;await this.refresh();this.setData({locationError:""});});},
+  follow(e){return this.action(async()=>{if(!(await this.requireAccount()))return;await service.followForumUser(e.currentTarget.dataset.user);await this.refresh();});},
+  like(e){return this.action(async()=>{if(!(await this.requireAccount()))return;await service.likeForumPost(e.currentTarget.dataset.id);await this.refresh();});},
+  author(e){const p=this.data.posts.find(p=>p.id===e.currentTarget.dataset.id);if(p&&!p.anonymous)navigate("/pages/public-profile/index?userId="+encodeURIComponent(p.userId));},
+  more(e){const p=this.data.posts.find(p=>p.id===e.currentTarget.dataset.id);if(!p)return;wx.showActionSheet({itemList:p.mine?["编辑笔记","查看笔记"]:[p.favorited?"取消收藏":"收藏笔记","举报笔记"],success:r=>{if(p.mine){navigate(r.tapIndex===0?"/pages/forum-editor/index?id="+p.id:"/pages/forum-detail/index?id="+p.id);return;}this.action(async()=>{if(!(await this.requireAccount()))return;if(r.tapIndex===0){await service.favoriteForumPost(p.id);await this.refresh();}else{wx.showModal({title:"举报笔记",editable:true,placeholderText:"请填写举报原因",success:result=>{if(result.confirm)this.action(async()=>{await service.reportForumPost(p.id,result.content);wx.showToast({title:"举报已提交",icon:"success"});});}});}});}});},
   publish() {
     navigate(
       this.data.signedIn ? "/pages/forum-editor/index" : "/pages/account/index",

@@ -125,6 +125,7 @@ function createCommunityDomain(c) {
     favorited: p.favorites.includes(uid(s)),
     likeCount: p.likes.length,
     favoriteCount: p.favorites.length,
+    following: !!(uid(s) && (init(s).follows || []).some(f=>f.from===uid(s)&&f.to===p.userId)),
     audit:
       p.userId === uid(s) || (uid(s) && s.full.role === "hq") ? p.audit : [],
     reports: uid(s) && s.full.role === "hq" ? p.reports : [],
@@ -178,6 +179,9 @@ function createCommunityDomain(c) {
     };
   };
   const api = {
+    followForumUser(userId) {
+      return c.change(s=>{const from=c.requireLogin(s),d=init(s);if(from===userId)throw Error("不能关注自己");if(!d.posts.some(p=>p.userId===userId&&!p.anonymous&&visible(s,p)))throw Error("暂时无法关注此用户");d.follows=d.follows||[];const index=d.follows.findIndex(f=>f.from===from&&f.to===userId);if(index<0)d.follows.push({from,to:userId});else d.follows.splice(index,1);return {following:index<0};});
+    },
     getForumRegion() {
       return init(c.read()).localRegion || null;
     },
@@ -185,14 +189,14 @@ function createCommunityDomain(c) {
       return c.change((s) => {
         if (
           !region ||
-          region.source !== "map" ||
+          !["map", "gps"].includes(region.source) ||
           !String(region.city || "").trim()
         )
           throw Error("请在地图中确认定位城市");
         const city = String(region.city).trim().replace(/市$/, "");
         if (!/^[\u3400-\u9fff·]{2,20}$/.test(city))
           throw Error("定位城市无效，请重新定位");
-        const value = { city, label: city + "市", source: "map" };
+        const value = { city, label: city + "市", source: region.source };
         init(s).localRegion = value;
         return value;
       });

@@ -250,3 +250,11 @@ test("forum accepts nine ordered images and rejects a tenth", () => {
   a.deepEqual(p.images,images);
   a.throws(()=>api.createForumPost({images:images.concat("/owned/10.jpg"),text:"",kind:"生活分享"}),/最多9/);
 });
+
+test("real-name public authors can be followed while anonymous authors stay private", () => {
+ const {api,s}=fixture();const p=api.createForumPost({text:"分享今日健康的小日常",kind:"生活分享",anonymous:false});
+ s.full.role="hq";api.moderateForumPost(p.id,"approved","完整内容审核通过");s.session.userId="reader";
+ a.equal(api.followForumUser("me").following,true);a.equal(api.getForumPost(p.id).following,true);a.equal(api.followForumUser("me").following,false);
+ s.session.userId="me";const anon=api.createForumPost({text:"匿名分享自己的小日常",kind:"生活分享",anonymous:true});api.moderateForumPost(anon.id,"approved","完整内容审核通过");
+ a.throws(()=>api.followForumUser("me"),/自己/);
+});
