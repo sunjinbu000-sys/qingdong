@@ -8,6 +8,7 @@ page({
     directions: ["培养习惯，温和减重", "保持体重，规律生活", "仅记录日常"], directionIndex: 0,
     healthStates: ["无 / 不适用", "孕期或哺乳期", "需要专业指导的健康状态"], healthIndex: 0,
     consent: false,
+    selector: null,
     cities,
     cityIndex: 0,
     form: { nickname: "", city: "", height: "", targetWeight: "" },
@@ -41,6 +42,20 @@ page({
       cityIndex: Number(e.detail.value),
       "form.city": cities[e.detail.value],
     });
+  },
+  openSelector(e) {
+    const key = e.currentTarget.dataset.field;
+    const config = { city: ["所在城市", "cities", "cityIndex"], sex: ["性别", "sexes", "sexIndex"], direction: ["我的方向", "directions", "directionIndex"], healthStatus: ["特殊健康状态", "healthStates", "healthIndex"] }[key];
+    if (!config) return;
+    this.setData({ selector: { key, title: config[0], options: this.data[config[1]], indexKey: config[2], selected: this.data[config[2]], height: Math.min(650, this.data[config[1]].length * 108) } });
+  },
+  selectOption(e) { this.setData({ "selector.selected": Number(e.currentTarget.dataset.index) }); },
+  closeSelector() { this.setData({ selector: null }); },
+  stopScroll() {},
+  confirmSelector() {
+    const selector = this.data.selector;
+    if (!selector || !selector.options[selector.selected]) return;
+    this.setData({ ["form." + selector.key]: selector.options[selector.selected], [selector.indexKey]: selector.selected, selector: null });
   },
   pick(e) {
     const key = e.currentTarget.dataset.field, index = Number(e.detail.value);

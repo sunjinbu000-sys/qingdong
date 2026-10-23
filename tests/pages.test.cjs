@@ -451,3 +451,25 @@ test("every configured bottom tab uses native switchTab navigation", () => {
     assert.equal(app.tabBar.list.length, 5);
   } finally { wx.switchTab = oldSwitch; wx.navigateTo = oldNavigate; }
 });
+
+test("health form selectors show every option, confirm correctly, and cancel without changing values", () => {
+  for (const name of ["account", "health-profile"]) {
+    const p = loadPage(name);
+    for (const [field, optionsKey] of [["direction", "directions"], ["sex", "sexes"], ["healthStatus", "healthStates"], ["city", "cities"]]) {
+      const options = p.data[optionsKey];
+      for (let i = 0; i < options.length; i++) {
+        p.openSelector({ currentTarget: { dataset: { field } } });
+        assert.deepEqual(p.data.selector.options, options);
+        p.selectOption({ currentTarget: { dataset: { index: i } } });
+        p.confirmSelector();
+        assert.equal(p.data.form[field], options[i]);
+        assert.equal(p.data.selector, null);
+      }
+      const before = p.data.form[field];
+      p.openSelector({ currentTarget: { dataset: { field } } });
+      p.selectOption({ currentTarget: { dataset: { index: 0 } } });
+      p.closeSelector();
+      assert.equal(p.data.form[field], before);
+    }
+  }
+});
