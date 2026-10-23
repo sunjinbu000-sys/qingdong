@@ -728,7 +728,7 @@ test("team creation requires explicit confirmation in the scrollable rules sheet
   saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"创建确认",city:"温州"});
   const p=loadPage("team-editor");await p.refresh();p.input({currentTarget:{dataset:{key:"name"}},detail:{value:"温柔小队"}});
   const before=(await service.listTeams({city:"温州"})).length;
-  await p.submit({detail:{value:{name:"温柔小队"}}});assert.equal(p.data.rulesOpen,true);assert.equal((await service.listTeams({city:"温州"})).length,before);
+  await p.submit({detail:{value:{name:"温柔小队"}}});assert.equal(p.data.rulesOpen,true);assert.equal(p.data.creationSummary.name,"温柔小队");assert.equal(p.data.creationSummary.max,5);assert.equal(p.data.creationSummary.method,"仅邀请加入");assert.equal(p.data.creationSummary.tasks,"每日签到、早起打卡");assert.equal((await service.listTeams({city:"温州"})).length,before);
   p.closeRules();await p.confirmCreate();assert.equal((await service.listTeams({city:"温州"})).length,before);
   await p.submit({detail:{value:{name:"温柔小队"}}});await Promise.all([p.confirmCreate(),p.confirmCreate()]);assert.equal((await service.listTeams({city:"温州"})).length,before+1);assert.equal(p.data.rulesOpen,false);
  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
