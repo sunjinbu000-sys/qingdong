@@ -355,6 +355,10 @@ test("signed-out diary shows a selectable calendar and clears previous personal 
     assert.equal(p.data.dayCheckedIn, false);
     await p.selectCalendarDate({ currentTarget: { dataset: { date: "2026-10-20" } } });
     assert.equal(p.data.date, "2026-10-20");
+    assert.equal(p.data.weekDates.length, 7);
+    assert.equal(p.data.weekDates.find(d => d.selected).date, "2026-10-20");
+    assert.equal(p.data.dateTitle, "10 月 20 日");
+    assert.equal(p.data.weekdayTitle, "周二");
     assert.equal(p.data.overview.calendar.filter(d => d.selected)[0].date, "2026-10-20");
   } finally { service.getSnapshot = original; }
 });

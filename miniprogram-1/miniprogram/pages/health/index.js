@@ -30,7 +30,16 @@ page({
         chosenDate >= "2000-01-01" && chosenDate <= s.date
           ? chosenDate
           : s.date;
-      this.setData({ signedIn: s.signedIn, today: s.date, date });
+      const weekdayNames = ["日", "一", "二", "三", "四", "五", "六"];
+      const weekEnd = date >= shiftDate(s.date, -6) ? s.date : date;
+      const weekDates = Array.from({ length: 7 }, (_, i) => {
+        const dayDate = shiftDate(weekEnd, i - 6);
+        return { date: dayDate, day: Number(dayDate.slice(8)), weekday: weekdayNames[new Date(dayDate + "T00:00:00Z").getUTCDay()], selected: dayDate === date, hasRecords: false, future: dayDate < "2000-01-01" };
+      });
+      this.setData({ signedIn: s.signedIn, today: s.date, date, weekDates,
+        dateTitle: Number(date.slice(5, 7)) + " 月 " + Number(date.slice(8)) + " 日",
+        weekdayTitle: "周" + weekdayNames[new Date(date + "T00:00:00Z").getUTCDay()],
+      });
       if (!s.signedIn) {
         this.setData({
           diary: { summary: { calories: 0, minutes: 0, weight: "—" }, meals: [], exercises: [], weights: [] },
@@ -60,7 +69,9 @@ page({
           total: Math.round(records.reduce((n, r) => n + r.kcal, 0)),
         };
       });
-      this.setData({ diary, mealGroups, overview, monthLabel: date.slice(0, 7),
+      this.setData({ diary, mealGroups, overview,
+        weekDates: weekDates.map(day => ({ ...day, hasRecords: overview.calendar.some(x => x.date === day.date && (x.hasRecords || x.checkedIn)) })),
+        monthLabel: date.slice(0, 7),
         dayCheckedIn: overview.calendar.some(day => day.date === date && day.checkedIn),
         paddingCells: Array.from({ length: new Date(date.slice(0, 7) + "-01T00:00:00Z").getUTCDay() }, (_, i) => i),
       });
