@@ -705,6 +705,16 @@ function createDomain({ store, now = Date.now }) {
           record.kg = positive(input.kg, "体重", 350);
           if (input.note !== undefined && (typeof input.note !== "string" || input.note.length > 120)) throw Error("状态备注最多120字");
           record.note = (input.note || "").trim();
+          if (input.dailyWeight) {
+            const weights=s.records.filter(r=>r.userId===userId&&r.type==="weight"&&r.date===date);
+            const signature=JSON.stringify(weights.map(r=>[r.id,r.kg,r.note||""]));
+            if(input.expectedWeightSignature!==signature)throw Error("当天体重记录已更新，请重新保存并确认");
+            if(weights.length){
+              if(input.replaceConfirmed!==true)throw Error("请先确认替换当天体重");
+              const previous=weights[weights.length-1];record.id=previous.id;record.createdAt=previous.createdAt;record.updatedAt=now();
+              s.records=s.records.filter(r=>!(r.userId===userId&&r.type==="weight"&&r.date===date));
+            }
+          }
           const f=ensureFull(s, today());
           if (!Number(f.profileExtra.initialWeight)) {
             const first=s.records.filter(r=>r.userId===userId&&r.type==="weight").sort((a,b)=>a.date.localeCompare(b.date))[0];

@@ -699,3 +699,16 @@ test("weight entry saves optional status and synchronizes initial weight and tre
   await assert.rejects(service.saveRecord({type:"weight",date:trend.records[0].date,kg:68,note:"a".repeat(121)}),/120/);assert.equal((await service.getWeightTrend()).records.length,1);
  }finally{saved=previous;}
 });
+
+test("daily weight saves first silently and confirms each later replacement", async () => {
+ const previous=saved,oldWx={...wx};try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"每日体重",city:"温州"});
+  const p=loadPage("records");p.onLoad({type:"weight",date:"2026-01-03"});await p.refresh();p.setData({"form.kg":"70","form.note":"晨起"});
+  let prompts=0,confirm=false;wx.showModal=o=>{prompts++;assert.match(o.content,/2026-01-03 已记录/);o.success({confirm});};
+  await p.save();assert.equal(prompts,0);const first=(await service.getDiary("2026-01-03")).weights[0];
+  p.setData({"form.kg":"69","form.note":"晚上"});await p.save();assert.equal(prompts,1);assert.equal((await service.getDiary("2026-01-03")).weights[0].kg,70);
+  confirm=true;await p.save();assert.equal(prompts,2);let weights=(await service.getDiary("2026-01-03")).weights;assert.equal(weights.length,1);assert.equal(weights[0].id,first.id);assert.equal(weights[0].kg,69);assert.equal(weights[0].note,"晚上");
+  p.setData({"form.kg":"68.5"});await p.save();assert.equal(prompts,3);assert.equal((await service.getDiary("2026-01-03")).weights.length,1);
+  await assert.rejects(service.saveRecord({type:"weight",date:"2026-01-03",kg:68,dailyWeight:true,replaceConfirmed:true,expectedWeightSignature:"[]"}),/已更新/);
+ }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});

@@ -68,8 +68,21 @@ page({
   save() {
     return this.action(async () => {
       if (!(await this.requireAccount())) return;
+      let weightConfirmation = {};
+      if (this.data.type === "weight") {
+        const kg = Number(this.data.form.kg);
+        if (!Number.isFinite(kg) || kg <= 0 || kg > 350) throw Error("请填写0–350之间的有效体重");
+        const diary = await service.getDiary(this.data.form.date), weights = diary.weights;
+        const signature = JSON.stringify(weights.map(r => [r.id, r.kg, r.note || ""]));
+        if (weights.length) {
+          const latest = weights[weights.length - 1];
+          const confirmed = await new Promise(resolve => wx.showModal({title:"请确认",content:this.data.form.date + " 已记录 " + latest.kg + " kg，要替换为 " + kg + " kg 吗？",cancelText:"取消",confirmText:"确定",confirmColor:"#07c160",success:r=>resolve(r.confirm),fail:()=>resolve(false)}));
+          if (!confirmed) return;
+        }
+        weightConfirmation = { dailyWeight: true, replaceConfirmed: weights.length > 0, expectedWeightSignature: signature };
+      }
       await service.saveRecord(
-        Object.assign({}, this.data.form, {
+        Object.assign({}, this.data.form, weightConfirmation, {
           type: this.data.type,
           slot: ["breakfast", "lunch", "dinner", "snack"][this.data.slotIndex],
         }),
