@@ -712,3 +712,13 @@ test("daily weight saves first silently and confirms each later replacement", as
   await assert.rejects(service.saveRecord({type:"weight",date:"2026-01-03",kg:68,dailyWeight:true,replaceConfirmed:true,expectedWeightSignature:"[]"}),/已更新/);
  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+test("team invitation lookup previews basic details without joining or leaking roster", async () => {
+ const previous=saved;try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"邀请测试",city:"温州"});const date=(await service.getSnapshot()).date;
+  const end=new Date(Date.parse(date+"T00:00:00Z")+6*86400000).toISOString().slice(0,10);
+  const team=await service.createTeam({name:"同行小队",max:5,start:date,end,method:"invite",tasks:["signin","early"]});
+  const p=loadPage("team-join");p.input({detail:{value:"  "+team.invite+"  "}});await p.viewInvite();assert.equal(p.data.invitation.name,"同行小队");assert.equal(p.data.invitation.memberCount,1);assert.equal(p.data.invitation.alreadyJoined,true);assert.equal(p.data.invitation.invite,undefined);assert.equal(p.data.invitation.members,undefined);
+  assert.equal((await service.getTeam(team.id)).members.length,1);p.input({detail:{value:"bad-code"}});assert.equal(p.data.invitation,null);await assert.rejects(service.getTeamInvitation("bad-code"),/无效/);
+ }finally{saved=previous;}
+});

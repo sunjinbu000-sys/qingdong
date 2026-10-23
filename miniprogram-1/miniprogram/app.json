@@ -60,7 +60,8 @@
     "pages/weight-review/index",
     "pages/word-ops/index",
     "pages/daily-meals/index",
-    "pages/exercise/index"
+    "pages/exercise/index",
+    "pages/team-join/index"
   ],
   "window": {
     "navigationBarTitleText": "轻动",

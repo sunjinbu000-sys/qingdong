@@ -16,7 +16,7 @@ page({
   onShareAppMessage() {
     return {
       title: this.data.team.name,
-      path: "/pages/team-detail/index?id=" + this.key,
+      path: this.data.team.invite ? "/pages/team-join/index?code=" + encodeURIComponent(this.data.team.invite) : "/pages/team-detail/index?id=" + this.key,
     };
   },
 });
