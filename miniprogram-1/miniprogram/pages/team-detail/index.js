@@ -19,7 +19,7 @@ page({
   rules(){this.setData({rulesOpen:true});},
   closeRules(){this.setData({rulesOpen:false});},
   preventMove(){},
-  dissolve(){wx.showModal({title:"解散这个小队？",content:"仅筹队期间可解散。解散后邀请码失效，伙伴不能继续加入；个人健康记录保留。",confirmText:"解散小队",confirmColor:"#b66b84",success:r=>{if(r.confirm)this.action(async()=>{await service.dissolveTeam(this.key);navigate("/pages/team/index");});}});},
+  dissolve(){wx.showModal({title:"解散这个小队？",content:"仅筹队期间可解散。解散后所有成员将离开小队，邀请码失效，伙伴不能继续加入；个人健康记录保留。",confirmText:"解散小队",confirmColor:"#b66b84",success:r=>{if(r.confirm)this.action(async()=>{await service.dissolveTeam(this.key);navigate("/pages/team/index");});}});},
   join(e) {
     return this.action(async () => {
       await service.joinTeam(this.key, e.detail.value.code);
