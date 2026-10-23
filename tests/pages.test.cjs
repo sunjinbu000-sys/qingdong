@@ -567,3 +567,24 @@ test("photo report opens from history without a new recognition or charge", asyn
     assert.equal((await service.getDiary(report.date)).meals.length,0);
   } finally { saved = previous; }
 });
+
+test("forum composer maps topics to categories and cancels video without losing content", async () => {
+  const p=loadPage("forum-editor"),oldWx={...wx};
+  try {
+    p.setData({text:"保留这一段生活分享",title:"今天的日常"});
+    p.chooseTopic({currentTarget:{dataset:{kind:"饮食打卡"}}});
+    assert.equal(p.data.kind,"饮食打卡");
+    assert.equal(p.data.kindIndex,2);
+    wx.chooseMedia=o=>{assert.deepEqual(o.mediaType,["video"]);o.fail({errMsg:"chooseMedia:fail cancel"});};
+    await p.addVideo();
+    assert.equal(p.data.video,"");
+    assert.equal(p.data.text,"保留这一段生活分享");
+    wx.chooseMedia=o=>o.success({tempFiles:[{tempFilePath:"/tmp/clip.mp4",size:1024,duration:15}]});
+    wx.env={USER_DATA_PATH:"/owned"};
+    wx.getFileSystemManager=()=>({copyFile:o=>o.success()});
+    await p.addVideo();
+    assert.match(p.data.video,/^\/owned\/qingdong-forum-.*\.mp4$/);
+    p.removeVideo();
+    assert.equal(p.data.video,"");
+  } finally { Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx); }
+});

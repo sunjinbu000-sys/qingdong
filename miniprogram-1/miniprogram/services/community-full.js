@@ -154,20 +154,23 @@ function createCommunityDomain(c) {
     });
   const validate = (v) => {
     const text = String(v.text || "").trim(),
-      images = v.images || [];
+      images = v.images || [],
+      video = v.video || "";
     if (
       text.length > 2000 ||
-      (text.length < 5 && !images.length) ||
+      (text.length < 5 && !images.length && !video) ||
+      typeof video !== "string" || video.length > 1000 || (video && (!video.trim() || images.length > 0)) ||
       !Array.isArray(images) ||
       images.length > 3 ||
       images.some((x) => typeof x !== "string" || !x.trim() || x.length > 1000)
     )
-      throw Error("请填写5–2000字或上传图片，最多3张");
+      throw Error("请填写5–2000字，或上传最多3张图片/1个视频，图片和视频不能混用");
     if (v.title && v.title.length > 60) throw Error("标题最多60字");
     return {
       title: String(v.title || "").trim(),
       text,
       images: images.slice(),
+      video,
       kind: ["生活分享", "饮食打卡", "运动打卡", "小队打卡"].includes(v.kind)
         ? v.kind
         : "生活分享",
@@ -312,6 +315,7 @@ function createCommunityDomain(c) {
         p.status = "deleted";
         p.text = "";
         p.images = [];
+        p.video = "";
         return { deleted: true };
       });
     },

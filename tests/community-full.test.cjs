@@ -222,3 +222,17 @@ test("native comment composer defaults anonymous and anonymous author cannot nav
   definition.commentAnonymous.call(local, { detail: { value: false } });
   a.equal(local.data.anonymousComment, false);
 });
+
+test("forum composer video persists through draft and review with exclusive media types", () => {
+  const {api} = fixture();
+  const draft = api.createForumPost({text:"",video:"/owned/forum.mp4",kind:"运动打卡",draft:true});
+  a.equal(draft.status,"draft");
+  a.equal(draft.video,"/owned/forum.mp4");
+  const pending = api.editForumPost(draft.id,{text:"今天一起轻松动一动",video:draft.video,kind:"运动打卡"});
+  a.equal(pending.status,"pending");
+  a.equal(pending.kind,"运动打卡");
+  a.equal(pending.video,draft.video);
+  a.throws(()=>api.createForumPost({text:"分享今天的运动日常",video:"/owned/forum.mp4",images:["/owned/photo.jpg"]}),/不能混用/);
+  api.deleteForumPost(draft.id);
+  a.equal(api.getForumPost(draft.id).video,"");
+});
