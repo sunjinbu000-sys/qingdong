@@ -608,26 +608,38 @@ function createOperationsDomain(c) {
         badges: this.getBadges().filter((x) => x.unlocked).length,
       };
     },
+    toggleFoodFavorite(input) {
+      return change(s=>{const userId=c.requireLogin(s),f=full(s),kind=input.kind;
+        const pool=kind==="foods"?Health.foods:kind==="recipes"?Health.recipes:kind==="activities"?Health.activities:null;
+        if(!pool||!pool.some(x=>x.id===input.id))throw Error("内容不存在");
+        f.foodFavorites=f.foodFavorites||[];const index=f.foodFavorites.findIndex(x=>x.userId===userId&&x.kind===kind&&x.id===input.id);
+        if(index<0)f.foodFavorites.push({userId,kind,id:input.id});else f.foodFavorites.splice(index,1);return {favorite:index<0};
+      });
+    },
     getFoodLibrary() {
       const s = read(),
         f = full(s);
+      const favorites=(f.foodFavorites||[]).filter(x=>s.session&&x.userId===s.session.userId), restrictions=s.session?f.profileExtra.restrictions:[];
       return {
         foods: Health.foods.map((x) => ({
           ...x,
-          conflicts: Health.conflicts(x, f.profileExtra.restrictions),
+          conflicts: Health.conflicts(x, restrictions),
+          favorite: favorites.some(v=>v.kind==="foods"&&v.id===x.id),
         })),
         recipes: Health.recipes
           .map(Health.recipeFood)
           .map((x) => ({
             ...x,
-            conflicts: Health.conflicts(x, f.profileExtra.restrictions),
+            conflicts: Health.conflicts(x, restrictions),
+            totalGrams: x.items.reduce((n,item)=>n+item[1],0),
+            favorite: favorites.some(v=>v.kind==="recipes"&&v.id===x.id),
             ingredients: x.items.map(
               ([id, q]) =>
                 Health.foods.find((f) => f.id === id).name + " " + q + "g",
             ),
           })),
-        activities: Health.activities,
-        restrictions: f.profileExtra.restrictions,
+        activities: Health.activities.map(x=>({...x,favorite:favorites.some(v=>v.kind==="activities"&&v.id===x.id)})),
+        restrictions,
       };
     },
     recordMealBasket(input) {
@@ -641,8 +653,8 @@ function createOperationsDomain(c) {
           const recipe=item.recipeId&&Health.recipes.find(r=>r.id===item.recipeId);
           const food=recipe?Health.recipeFood(recipe):Health.foods.find(f=>f.id===item.foodId);
           if(!food)throw Error("食物不存在");
-          const grams=positive(item.grams,"克数",10000),n=Health.nutrients(food,grams);
-          return {id:id("record"),userId,type:"meal",date:input.date,slot:input.slot,name:food.name+" "+grams+"g",foodId:item.foodId||null,recipeId:item.recipeId||null,grams,...n,source:recipe?"recipe":"food-library",mealBatchId:requestId,createdAt:c.now()};
+          const grams=positive(item.grams,"克数",10000),n=Health.nutrients(food,recipe ? grams / recipe.items.reduce((n,item)=>n+item[1],0) * 100 : grams);
+          return {id:id("record"),userId,type:"meal",date:input.date,slot:input.slot,name:food.name+" "+grams+(recipe?"g":food.unit||"g"),foodId:item.foodId||null,recipeId:item.recipeId||null,grams,...n,source:recipe?"recipe":"food-library",mealBatchId:requestId,createdAt:c.now()};
         });s.records.push(...records);return records;
       });
     },

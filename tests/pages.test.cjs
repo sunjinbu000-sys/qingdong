@@ -777,3 +777,12 @@ test("captain invitation page automatically prepares a stable code for copying a
   const code=p.data.code;await p.refresh();assert.equal(p.data.code,code);await service.dissolveTeam(team.id);await p.refresh();assert.equal(p.data.inviteAvailable,false);assert.equal(p.data.code,"");
  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+test("food library filters categories searches and personal favorites", async () => {
+ const previous=saved;try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"食物收藏",city:"温州"});const p=loadPage("food-library");p.onLoad({});await p.refresh();assert.equal(p.data.shown.length,10);
+  p.chooseCategory({currentTarget:{dataset:{key:"饮品"}}});assert(p.data.shown.every(x=>x.group==="饮品"));p.search({detail:{value:"咖啡"}});assert(p.data.shown.some(x=>x.id==="coffee"));
+  await p.favorite({currentTarget:{dataset:{id:"coffee"}}});p.toggleFavorites();assert.equal(p.data.shown.length,1);assert.equal(p.data.shown[0].id,"coffee");
+  p.toggleFavorites();p.search({detail:{value:""}});p.selectTab({currentTarget:{dataset:{tab:"recipes"}}});assert(p.data.shown[0].ingredientsText);assert.equal(p.data.amount,1);assert(p.data.shown[0].totalGrams>0);
+ }finally{saved=previous;}
+});

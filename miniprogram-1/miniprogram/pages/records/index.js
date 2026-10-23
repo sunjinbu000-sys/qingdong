@@ -33,7 +33,7 @@ page({
     });
     if(this.data.type==="meal")return this.loadData(async()=>{
       const library=await service.getFoodLibrary();
-      this.setData({foods:[...library.foods.map(f=>({...f,key:"food:"+f.id,foodId:f.id})),...library.recipes.map(f=>({...f,key:"recipe:"+f.id,recipeId:f.id,group:"家常食谱"}))].map(f=>({...f,kcalLabel:Number(f.kcal).toFixed(2)}))});this.filterFoods();
+      this.setData({foods:[...library.foods.map(f=>({...f,key:"food:"+f.id,foodId:f.id})),...library.recipes.map(f=>({...f,key:"recipe:"+f.id,recipeId:f.id,unit:"g",kcal:f.kcal*100/f.totalGrams,group:"家常食谱"}))].map(f=>({...f,kcalLabel:Number(f.kcal).toFixed(2)}))});this.filterFoods();
     });
   },
   filterFoods(){const q=this.data.query.trim();this.setData({shownFoods:this.data.foods.filter(f=>!q||f.name.includes(q)||(f.group||"").includes(q)).slice(0,this.data.expanded||q?1000:10)});},
