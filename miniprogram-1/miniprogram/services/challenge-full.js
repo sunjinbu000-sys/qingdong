@@ -609,6 +609,16 @@ function createChallengeFullDomain(c) {
         return teamView(s, t);
       });
     },
+    joinTeamByInvite(code) {
+      const s = read();
+      requireCity(s);
+      const value = String(code || "").trim();
+      if (!value) fail("请填写邀请码");
+      const t = full(s).teams.find(t => !t.cancelled && t.invite === value);
+      if (!t) fail("邀请码无效，请核对后重试");
+      const result = api.joinTeam(t.id, value);
+      return { ...result, id: t.id };
+    },
     joinTeam(k, code) {
       return change((s) => {
         const u = requireCity(s),

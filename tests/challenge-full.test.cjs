@@ -552,3 +552,15 @@ test("operator sees form values only for own-city events, public cards never inc
   assert.equal(a.getEvent(foreign.id).registrations.length, 0);
   assert.equal(a.getEvent(foreign.id).canManage, false);
 });
+
+test("invite code resolves a team and retains existing admission guards", () => {
+  const x = fixture(), a = x.api;
+  const team = a.createTeam({ name: "好友同行", max: 3, method: "invite", start: "2026-10-21", end: "2026-10-27", tasks: ["signin", "weight"] });
+  x.user("b");
+  assert.throws(() => a.joinTeamByInvite("missing"), /邀请码/);
+  const joined = a.joinTeamByInvite("  " + team.invite + "  ");
+  assert.equal(joined.id, team.id);
+  assert.equal(joined.pending, false);
+  assert(a.getTeam(team.id).isMember);
+  assert.throws(() => a.joinTeamByInvite(team.invite), /已加入/);
+});

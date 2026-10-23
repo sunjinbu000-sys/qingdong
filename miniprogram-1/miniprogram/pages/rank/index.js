@@ -1,6 +1,9 @@
 const { page, service, navigate } = require("../../utils/page");
 page({
   data: { query: { scope: "national", metric: "checkin" }, city: "", metrics: [{ id: "checkin", title: "坚持榜" }, { id: "loss", title: "减重榜" }, { id: "teamTotal", title: "团队总榜" }, { id: "teamAverage", title: "团队人均榜" }], rank: { rows: [] }, podium: [], remainingRows: [] },
+  onLoad(options) {
+    if (["checkin", "loss", "teamTotal", "teamAverage"].includes(options.metric)) this.setData({ query: { ...this.data.query, metric: options.metric } });
+  },
   refresh() {
     return this.loadData(async () => {
       const snapshot = await service.getSnapshot();
