@@ -11,7 +11,7 @@ page({
       { title: "轻动与成长", items: [
         { title: "我的小队", route: "team", icon: "flag" },
         { title: "我的轻动计划", route: "ai-plan", icon: "sun" },
-        { title: "成长徽章", route: "badges", icon: "gift" },
+        { title: "成长勋章", route: "badges", icon: "gift" },
         { title: "邀请好友", route: "invite", icon: "gift" },
         { title: "打卡分享海报", route: "share", icon: "camera" },
         { title: "我的奖励", route: "rewards", icon: "gift" },
