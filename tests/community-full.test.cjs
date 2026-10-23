@@ -236,3 +236,10 @@ test("forum composer video persists through draft and review with exclusive medi
   api.deleteForumPost(draft.id);
   a.equal(api.getForumPost(draft.id).video,"");
 });
+
+test("mood topic remains its own category when saved and edited", () => {
+  const {api}=fixture();
+  const post=api.createForumPost({text:"今天给自己一点快乐",kind:"心情宣发",draft:true});
+  a.equal(post.kind,"心情宣发");
+  a.equal(api.editForumPost(post.id,{text:"今天也要好好照顾自己",kind:"心情宣发"}).kind,"心情宣发");
+});

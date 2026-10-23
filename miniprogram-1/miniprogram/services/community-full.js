@@ -171,7 +171,7 @@ function createCommunityDomain(c) {
       text,
       images: images.slice(),
       video,
-      kind: ["生活分享", "饮食打卡", "运动打卡", "小队打卡"].includes(v.kind)
+      kind: ["生活分享", "饮食打卡", "运动打卡", "小队打卡", "心情宣发"].includes(v.kind)
         ? v.kind
         : "生活分享",
       anonymous: v.anonymous !== false,

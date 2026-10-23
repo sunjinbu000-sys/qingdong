@@ -23,7 +23,6 @@ page({
       ] },
       { title: "设置与更多", items: [
         { title: "隐私与数据", subtitle: "分享多少，由你决定", route: "privacy", icon: "shield" },
-        { title: "全部功能与运营", route: "explore", icon: "sun" },
       ] },
     ],
   },
