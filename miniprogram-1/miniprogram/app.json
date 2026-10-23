@@ -61,9 +61,9 @@
   ],
   "window": {
     "navigationBarTitleText": "轻动",
-    "navigationBarBackgroundColor": "#f6f7f2",
+    "navigationBarBackgroundColor": "#EAE4F9",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f6f7f2",
+    "backgroundColor": "#F8F5FC",
     "backgroundTextStyle": "dark"
   },
   "tabBar": {
