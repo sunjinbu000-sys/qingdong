@@ -1,3 +1,4 @@
+const { mockAnalysis, summarizeAnalysis } = require("./meal-analysis");
 const { bizDate, shiftDate, validDate } = require("../utils/date");
 const { createSeed } = require("./seed");
 const { activityView, reserveQualified } = require("./challenges");
@@ -309,6 +310,57 @@ function createDomain({ store, now = Date.now }) {
       const s = read();
       requireLogin(s);
       return membershipView(s, today());
+    },
+    analyzeFoodPhoto(input) {
+      return change(s => {
+        const userId = requireCity(s), requestId = text(input.requestId, "请求编号", 100);
+        const existing = s.recognitions.find(r => r.userId === userId && r.requestId === requestId);
+        if (existing) return existing;
+        const imagePath = text(input.imagePath, "餐食照片", 1000), slot = input.slot || mealSlot(now());
+        if (!SLOTS.includes(slot)) throw Error("请选择有效餐次");
+        if (![undefined, "unknown", "meal"].includes(input.mockScenario)) throw Error("演示场景无效");
+        growthHooks.assertRecognition(s);
+        const report = mockAnalysis(input), membership = membershipView(s, today());
+        let quotaSource = "not-charged", grantId = null;
+        if (report.recognized) {
+          const usesMember = !!membership.activeGrant && membership.remaining > 0;
+          const credit = usesMember && !(membership.activeGrant.features || ["photo", "adFree"]).includes("adFree");
+          quotaSource = usesMember ? credit ? "membership+" + growthHooks.consumeRecognition(s, requestId) : "membership" : growthHooks.consumeRecognition(s, requestId);
+          grantId = usesMember ? membership.activeGrant.id : "bonus";
+          growthHooks.logRecognition(s, requestId, quotaSource);
+        }
+        Object.assign(report, { id: id("analysis"), userId, requestId, imagePath, slot, date: today(), recordId: null, grantId, quotaSource, createdAt: now() });
+        s.recognitions.push(report);
+        return report;
+      });
+    },
+    updateFoodAnalysis(input) {
+      return change(s => {
+        const userId = requireLogin(s), report = s.recognitions.find(r => r.id === input.analysisId && r.userId === userId);
+        if (!report || !report.recognized) throw Error("尚未识别出食物，请改为手动记录");
+        if (input.name !== undefined) report.name = text(input.name, "餐食名称", 100);
+        summarizeAnalysis(report, input.portions);
+        report.corrected = true;
+        if (report.recordId) {
+          const record = s.records.find(r => r.id === report.recordId && r.userId === userId);
+          if (!record) throw Error("餐食记录已删除");
+          Object.assign(record, { name: report.name, kcal: report.kcal, protein: report.protein, carb: report.carbohydrate, fat: report.fat, ingredients: report.ingredients });
+        }
+        return report;
+      });
+    },
+    saveFoodAnalysis(analysisId) {
+      return change(s => {
+        const userId = requireLogin(s), report = s.recognitions.find(r => r.id === analysisId && r.userId === userId);
+        if (!report || !report.recognized || !Number.isFinite(report.kcal)) throw Error("未知餐食不能保存为零热量，请先手动补充餐食信息");
+        if (report.recordId) {
+          if (!s.records.some(r => r.id === report.recordId && r.userId === userId)) throw Error("记录已删除，请重新拍照或手动记录");
+          return report;
+        }
+        const record = { id: id("record"), userId, type: "meal", date: report.date, slot: report.slot, name: report.name, kcal: report.kcal, protein: report.protein, carb: report.carbohydrate, fat: report.fat, imagePath: report.imagePath, source: "recognition", ingredients: report.ingredients, createdAt: now() };
+        s.records.push(record); report.recordId = record.id; report.status = "saved";
+        return report;
+      });
     },
     recognizeMeal(input) {
       return change((s) => {

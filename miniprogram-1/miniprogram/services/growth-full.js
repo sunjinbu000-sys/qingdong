@@ -347,6 +347,14 @@ function createGrowthFullDomain(ctx) {
   }
   const api = {
     assessPlanGoal(input) { const s = read(); const f = init(s); login(s); return assessPlanGoal(profile(s), input, f.ai.config); },
+    getReportMealSuggestions(date) {
+      const s = read(), f = init(s), userId = login(s);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw Error("建议日期无效");
+      const p = profile(s), terms = restrictionList(p.restrictions || []);
+      const plan = f.ai.plans.find(p => p.userId === userId && !p.closedOn && p.start <= date && p.end >= date);
+      if (plan) { const day = planDays(plan).find(d => d.date === date); if (day && day.meals.every(m => !conflicts(m.title, terms) && m.ingredients.every(i => !conflicts(i.name, terms)))) return { date, source: "plan", planId: plan.id, meals: copy(day.meals), notice: "来自你的轻动计划；可打开计划调整。不根据单张照片扣减次日餐量。" }; }
+      return { date, source: "reference", meals: ["breakfast", "lunch", "dinner"].map((slot, i) => meal(terms, i, slot, f.ai.config.minIntake, "fatloss")), notice: plan ? "已有计划与最新忌口不一致，以下改用按当前档案筛选的模拟参考搭配。" : "没有该日期的已生成计划，以下仅为遵守档案忌口的模拟参考搭配，不是新的个性化处方或剩余热量预算。" };
+    },
     getPlanProfile() { const s = read(); login(s); return copy(profile(s)); },
     getRecognitionAccess() {
       const s = read(),

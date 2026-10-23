@@ -4,6 +4,7 @@ const {
   persistFoodImage,
 } = require("../../utils/media");
 const { watchRewardedVideo } = require("../../utils/rewarded-video");
+const { shiftDate } = require("../../utils/date");
 const { mealSlot } = require("../../services/membership");
 const slots = {
   breakfast: "早餐",
@@ -23,6 +24,10 @@ page({
     membership: { remaining: 0, dailyLimit: 0 },
     preview: "",
     result: null,
+    mockScenario: "unknown",
+    showPortions: false,
+    portionInputs: [],
+    suggestions: { meals: [] },
     photoError: "",
     slotLabel: "",
     cameraActive: true,
@@ -56,6 +61,7 @@ page({
         const hadPreview = !!this.data.preview;
         this.pending = null;
         this.setData({
+          screen: "capture",
           preview: "",
           result: null,
           photoError: "",
@@ -105,6 +111,7 @@ page({
       screen: "capture",
       needsAccount: false,
     });
+    if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({ title: "拍照记餐" });
     if (!snapshot.signedIn || !snapshot.profile.city) {
       this.setData({
         needsAccount: true,
@@ -169,12 +176,12 @@ page({
       this.setData({ access });
       if (!access.photoEnabled) throw Error("识餐功能暂未开放，请稍后重试");
       if (access.globalRemaining <= 0) throw Error("今日识餐服务额度已用完，请稍后重试");
-      if (access.remaining <= 0) { this.setData({ screen: "access" }); return; }
+      if (access.remaining <= 0) { this.setData({ screen: "access" }); if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({ title: "识餐次数与权益" }); return; }
       this.setData({ screen: "capture" });
       await this.processPending();
     });
   },
-  backToCapture() { this.setData({ screen: "capture" }); },
+  backToCapture() { this.setData({ screen: "capture" }); if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({ title: "拍照记餐" }); },
   watchAndRecognize() {
     return this.action(async () => {
       if (!this.pending) throw Error("照片已失效，请返回重新拍照");
@@ -196,61 +203,77 @@ page({
       await this.processPending();
     });
   },
+  toggleMockScenario(e) { this.setData({ mockScenario: e.detail.value.includes("meal") ? "meal" : "unknown" }); },
   async processPending() {
     if (!this.pending) return;
+    const pending = this.pending;
+    this.setData({ screen: "scanning", photoError: "" });
+    if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({ title: "正在读懂这一餐" });
     try {
-      const p = this.pending;
-      if (!p.imagePath)
-        p.imagePath = await persistFoodImage(wx, p.tempFilePath, p.requestId);
-      const result = await service.recognizeMeal({
-        imagePath: p.imagePath,
-        requestId: p.requestId,
-        slot: p.slot,
-      });
-      this.setData({
-        result,
-        preview: p.imagePath,
-        photoError: "",
-        slotLabel: slots[result.slot],
-        selectedSlot: result.slot,
-        needsAccount: false,
-      });
-      if (this.data.planId) {
-        try {
-          await service.completePlanTask({
-            planId: this.data.planId,
-            type: "photo",
-            recordId: result.recordId,
-          });
-        } catch (error) {
-          wx.showToast({
-            title: "餐食已保存；" + errorMessage(error),
-            icon: "none",
-          });
-        }
-      }
-      this.setData({ editName: result.name, editKcal: result.kcal });
+      if (!pending.imagePath) pending.imagePath = await persistFoodImage(wx, pending.tempFilePath, pending.requestId);
+      this.setData({ preview: pending.imagePath });
+      const [result] = await Promise.all([
+        service.analyzeFoodPhoto({ imagePath: pending.imagePath, requestId: pending.requestId, slot: pending.slot, mockScenario: this.data.mockScenario }),
+        this.data.access.mock ? new Promise(resolve => setTimeout(resolve, 850)) : Promise.resolve(),
+      ]);
+      let suggestions;
+      try { suggestions = await service.getReportMealSuggestions(shiftDate(result.date, 1)); }
+      catch (_) { suggestions = { date: shiftDate(result.date, 1), meals: [], notice: "当前档案限制下暂未生成可用参考搭配，请在轻动计划中完善或调整。" }; }
+      this.setData({ result, screen: "result", preview: pending.imagePath, slotLabel: slots[result.slot], selectedSlot: result.slot, needsAccount: false, editName: result.name, portionInputs: result.ingredients.map(x => String(x.grams)), showPortions: false, suggestions });
       this.pending = null;
+      if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({ title: "营养分析结果" });
       await this.refresh();
-      wx.showToast({ title: "模拟记录已保存", icon: "success" });
     } catch (error) {
-      this.setData({ photoError: errorMessage(error) });
+      this.setData({ screen: "capture", photoError: errorMessage(error) });
+      if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({ title: "拍照记餐" });
       throw error;
     }
+  },
+  adjustPortions() {
+    if (!this.data.result.recognized) return this.manualRecord();
+    const show = !this.data.showPortions;
+    this.setData({ showPortions: show });
+    if (show && wx.nextTick && wx.pageScrollTo) wx.nextTick(() => wx.pageScrollTo({ selector: ".analysis-edit-card", duration: 250 }));
+  },
+  portionInput(e) { this.setData({ ["portionInputs[" + Number(e.currentTarget.dataset.index) + "]"]: e.detail.value }); },
+  saveAnalysis() {
+    return this.action(async () => {
+      if (!this.data.result || !this.data.result.recognized) throw Error("尚未识别到食物，请先手动记录");
+      if (this.data.result.recordId) return navigate("/pages/health/index?date=" + this.data.result.date);
+      const result = await service.saveFoodAnalysis(this.data.result.id);
+      this.setData({ result });
+      if (this.data.planId) {
+        try { await service.completePlanTask({ planId: this.data.planId, type: "photo", recordId: result.recordId }); }
+        catch (error) { wx.showToast({ title: "已保存；" + errorMessage(error), icon: "none" }); return; }
+      }
+      wx.showToast({ title: "这一餐已保存", icon: "success" });
+    });
+  },
+  newPhoto() { return this.capture(); },
+  generateReportPoster() {
+    return this.action(async () => {
+      const result = this.data.result;
+      if (!result) return;
+      const c = wx.createCanvasContext("mealReportPoster", this);
+      c.setFillStyle("#f3edff"); c.fillRect(0, 0, 300, 420);
+      c.drawImage(this.data.preview, 18, 18, 264, 185);
+      c.setFillStyle("#303553"); c.setFontSize(19); c.fillText(result.name.slice(0, 16), 18, 240);
+      c.setFontSize(13); c.fillText(this.data.slotLabel + " · " + result.date, 18, 268);
+      c.setFillStyle("#8b69d1"); c.setFontSize(25); c.fillText(result.recognized ? result.kcal + " 千卡（样例估算）" : "未知热量", 18, 315);
+      c.setFontSize(11); c.setFillStyle("#9b8cae"); c.fillText("仅本机演示，照片估算不能代替专业建议。", 18, 382);
+      await new Promise(resolve => c.draw(false, resolve));
+      const poster = await new Promise((resolve, reject) => wx.canvasToTempFilePath({ canvasId: "mealReportPoster", success: resolve, fail: () => reject(Error("海报生成失败，请在手机上重试")) }, this));
+      wx.previewImage({ current: poster.tempFilePath, urls: [poster.tempFilePath] });
+    });
   },
   editInput(e) {
     this.setData({ [e.currentTarget.dataset.key]: e.detail.value });
   },
   correctMeal() {
-    this.action(async () => {
-      const result = await service.editRecognizedMeal({
-        recordId: this.data.result.recordId,
-        name: this.data.editName,
-        kcal: Number(this.data.editKcal),
-        slot: this.data.result.slot,
-      });
-      this.setData({ result });
-      wx.showToast({ title: "已调整，不重复扣次", icon: "success" });
+    return this.action(async () => {
+      const result = await service.updateFoodAnalysis({ analysisId: this.data.result.id, name: this.data.editName, portions: this.data.portionInputs.map(Number) });
+      this.setData({ result, showPortions: false });
+      wx.showToast({ title: "份量已更新，不重复扣次", icon: "success" });
     });
   },
   deleteMeal() {
@@ -258,6 +281,7 @@ page({
       await service.deleteRecord(this.data.result.recordId);
       this.pending = null;
       this.setData({
+        screen: "capture",
         result: null,
         preview: "",
         photoError: "",

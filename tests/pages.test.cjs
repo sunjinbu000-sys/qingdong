@@ -28,6 +28,7 @@ test("camera circle captures once before login, keeps selected slot and later sa
     const service = require("../miniprogram-1/miniprogram/services/index");
     const p = loadPage("photo");
     p.onLoad({ slot: "dinner" });
+    p.setData({ mockScenario: "meal" });
     await p.refresh();
     p.onCameraReady();
     let shots = 0;
@@ -56,6 +57,8 @@ test("camera circle captures once before login, keeps selected slot and later sa
     await p.refresh();
     await p.retryRecognition();
     assert.equal(p.data.result.slot, "dinner");
+    assert.equal((await service.getDiary(p.data.result.date)).meals.length, 0);
+    await p.saveAnalysis();
     assert.equal((await service.getDiary(p.data.result.date)).meals.length, 1);
     assert.equal(p.pending, null);
     let sourceTypes;
@@ -494,7 +497,7 @@ test("photo selection never charges or recognizes before explicit confirmation",
   try {
     const service = require("../miniprogram-1/miniprogram/services/index");
     await service.loginDemo(); await service.saveProfile({ nickname: "轻友", city: "温州", height: 165, targetWeight: 55 });
-    const p = loadPage("photo"); p.onLoad({ slot: "lunch" }); await p.refresh();
+    const p = loadPage("photo"); p.onLoad({ slot: "lunch" }); p.setData({ mockScenario: "meal" }); await p.refresh();
     const before = (await service.getRecognitionAccess()).remaining;
     await p.acceptImage("wxfile://pending-food.jpg");
     assert.equal(p.data.result, null);
