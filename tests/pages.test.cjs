@@ -419,3 +419,21 @@ test("calendar reminder requests a daily system event with seconds timestamp", a
     assert.equal(options.endTime - options.startTime, 300);
   } finally { wx.addPhoneRepeatCalendar = original; }
 });
+
+test("both personal and complete health entries expose the same form while signed out", async () => {
+  const service = require("../miniprogram-1/miniprogram/services/index");
+  const original = service.getSnapshot;
+  service.getSnapshot = async () => ({ signedIn: false, profile: { nickname: "新朋友", city: "", height: "", targetWeight: "" } });
+  try {
+    for (const name of ["account", "health-profile"]) {
+      const p = loadPage(name);
+      await p.refresh();
+      assert.equal(p.data.error, "");
+      assert.equal(p.data.signedIn, false);
+      assert.equal(p.data.form.healthStatus, "无 / 不适用");
+      assert.equal(p.data.form.direction, "培养习惯，温和减重");
+      assert.equal(typeof p.pick, "function");
+      assert.equal(typeof p.consent, "function");
+    }
+  } finally { service.getSnapshot = original; }
+});
