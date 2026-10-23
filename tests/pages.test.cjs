@@ -799,3 +799,14 @@ test("weight hero opens the latest owned record and editing prefills weight and 
   const record=loadPage("records");record.onLoad({type:"weight",date:"2026-01-05",edit:"1"});await record.refresh();assert.equal(record.data.form.kg,"72");assert.equal(record.data.form.note,"晨起");assert.equal(record.data.weightEditing,true);
  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+
+test("home order and weight hero support synchronized weight and goal settings", async () => {
+ assert.deepEqual(loadPage("index").data.shortcuts.slice(5).map(s=>s.route),["weight-trend","invite","badges"]);
+ const previous=saved,oldWx={...wx};try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"目标同步",city:"温州"});
+  const trend=loadPage("weight-trend");let destination="";wx.navigateTo=o=>destination=o.url;trend.editWeightAndGoal();assert.equal(destination,"/pages/health-profile/index");
+  await service.saveProfile({nickname:"目标同步",city:"温州",height:170,targetWeight:60,currentWeight:70,initialWeight:75,age:30,sex:"女",direction:"保持体重，规律生活",healthStatus:"无 / 不适用",healthConsent:true});
+  await trend.refresh();assert.equal(trend.data.current,70);assert.equal(trend.data.goalGap,"10.0");assert.equal(trend.data.difference,"-5.0 kg");
+ }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});

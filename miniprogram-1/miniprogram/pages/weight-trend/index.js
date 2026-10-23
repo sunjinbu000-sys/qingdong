@@ -12,6 +12,7 @@ page({
       this.renderTrend();
     });
   },
+  editWeightAndGoal() { navigate("/pages/health-profile/index"); },
   editWeight(e) {
     const records=(this.source&&this.source.records)||[],date=e&&e.currentTarget&&e.currentTarget.dataset.date;
     const latest=date?records.filter(r=>r.date===date).slice(-1)[0]:records[records.length-1];

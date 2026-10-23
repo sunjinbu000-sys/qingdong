@@ -15,9 +15,9 @@ page({
       { title: "榜单", route: "rank", icon: "rank" },
       { title: "轻动计划", route: "ai-plan", icon: "ai-plan" },
       { title: "活动广场", route: "events", icon: "events" },
+      { title: "体重趋势", route: "weight-trend", icon: "trend" },
       { title: "邀请好友", route: "invite", icon: "invite" },
       { title: "成长勋章", route: "badges", icon: "badges" },
-      { title: "体重趋势", route: "weight-trend", icon: "trend" },
     ],
   },
   refresh() {
