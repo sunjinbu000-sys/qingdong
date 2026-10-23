@@ -16,7 +16,7 @@ page({
     roleLabel: "消费者",
     extras: [
       { title: "我的小队", route: "/pages/team/index", icon: "flag" },
-      { title: "成就徽章", route: "/pages/badges/index", icon: "gift" },
+      { title: "成长徽章", route: "/pages/badges/index", icon: "gift" },
       {
         title: "营养与日历",
         route: "/pages/health-overview/index",
