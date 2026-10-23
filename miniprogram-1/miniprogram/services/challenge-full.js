@@ -611,7 +611,7 @@ function createChallengeFullDomain(c) {
       });
     },
     generateTeamInvite(k) {
-      return change(s=>{const t=find(full(s).teams,k);owner(s,t);if(t.cancelled||t.closed||today()>t.end)fail("小队已结束");if(!t.inviteExpires||today()>=t.inviteExpires){t.invite=id("code");t.inviteExpires=shiftDate(today(),7);}return {code:t.invite,expires:t.inviteExpires};});
+      return change(s=>{const t=find(full(s).teams,k);owner(s,t);if(t.cancelled||t.closed||today()>t.end)fail("小队已结束");if(!t.inviteExpires){t.invite=t.invite||id("code");t.inviteExpires=shiftDate(today(),7);}else if(today()>=t.inviteExpires){t.invite=id("code");t.inviteExpires=shiftDate(today(),7);}return {code:t.invite,expires:t.inviteExpires};});
     },
     dissolveTeam(k) {
       return change(s=>{const t=find(full(s).teams,k);owner(s,t);if(t.launched||t.closed||t.cancelled)fail("仅筹队期间可以解散小队");t.cancelled=true;t.requests=[];return {cancelled:true};});

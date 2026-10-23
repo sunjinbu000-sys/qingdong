@@ -768,3 +768,12 @@ test("forum personal area preserves collection and interaction tabs", async () =
   await p.changeMine({currentTarget:{dataset:{id:"favorited"}}});assert.equal(p.data.posts[0].id,"forum-demo-1");assert.equal(p.data.mine,"favorited");
  }finally{saved=previous;}
 });
+
+test("captain invitation page automatically prepares a stable code for copying and sharing", async () => {
+ const previous=saved,oldWx={...wx};try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"队长准备邀请",city:"温州"});const date=(await service.getSnapshot()).date,end=new Date(Date.parse(date+"T00:00:00Z")+6*86400000).toISOString().slice(0,10);
+  const team=await service.createTeam({name:"即点即邀请",max:5,start:date,end,method:"invite",tasks:["signin","early"]});const p=loadPage("team-invite");p.onLoad({id:team.id});await p.refresh();assert.equal(p.data.inviteAvailable,true);assert(p.data.code);assert(p.data.expires);assert.equal(p.data.code,team.invite);
+  let copied;wx.setClipboardData=o=>copied=o.data;p.copy();assert.equal(copied,p.data.code);assert.equal(p.onShareAppMessage().path,"/pages/team-join/index?code="+encodeURIComponent(p.data.code));
+  const code=p.data.code;await p.refresh();assert.equal(p.data.code,code);await service.dissolveTeam(team.id);await p.refresh();assert.equal(p.data.inviteAvailable,false);assert.equal(p.data.code,"");
+ }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});

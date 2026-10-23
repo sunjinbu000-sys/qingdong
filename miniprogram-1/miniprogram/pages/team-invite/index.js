@@ -1,8 +1,8 @@
 const {page,service}=require("../../utils/page");
 page({
- data:{team:null,code:"",expires:"",poster:""},
+ data:{team:null,code:"",expires:"",poster:"",inviteAvailable:false},
  onLoad(q={}){this.key=q.id==="first-step"?undefined:q.id;},
- refresh(){return this.loadData(async()=>{if(!this.key)this.key=(await service.listTeams())[0]?.id;if(!this.key){this.setData({team:null});return;}const team=await service.getTeam(this.key);const snapshot=await service.getSnapshot();this.setData({team,code:team.isCaptain&&team.inviteExpires&&team.inviteExpires>snapshot.date?team.invite:"",expires:team.inviteExpires||""});});},
+ refresh(){return this.loadData(async()=>{if(!this.key)this.key=(await service.listTeams())[0]?.id;if(!this.key){this.setData({team:null});return;}const team=await service.getTeam(this.key);const snapshot=await service.getSnapshot();const inviteAvailable=team.isCaptain&&!team.cancelled&&!team.closed&&team.end>=snapshot.date;let invite=null;if(inviteAvailable)invite=await service.generateTeamInvite(this.key);this.setData({team,inviteAvailable,code:invite?invite.code:"",expires:invite?invite.expires:""});});},
  async ensureCode(){const invite=await service.generateTeamInvite(this.key);this.setData({code:invite.code,expires:invite.expires});return invite.code;},
  generate(){return this.action(async()=>{await this.ensureCode();wx.showToast({title:"邀请码已生成",icon:"success"});});},
  copy(){if(!this.data.code)return;wx.setClipboardData({data:this.data.code});},
