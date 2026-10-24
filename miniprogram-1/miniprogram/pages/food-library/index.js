@@ -1,3 +1,4 @@
+const { foodIcon } = require("../../utils/food-icons");
 const { page, service } = require("../../utils/page");
 page({
   data: {
@@ -39,7 +40,7 @@ page({
     const categories=[{key:"all",label:"全部"},...Array.from(new Set(list.map(group))).map(label=>({key:label,label}))];
     const category=categories.some(x=>x.key===this.data.category)?this.data.category:"all";
     const filtered=list.filter(x=>(category==="all"||group(x)===category)&&(!this.data.favoritesOnly||x.favorite)&&(!q||x.name.includes(q)||group(x).includes(q)));
-    this.setData({categories,category,totalCount:filtered.length,shown:filtered.slice(0,this.data.limit).map(x=>({...x,categoryLabel:group(x),kcalLabel:Number(x.kcal||0).toFixed(2),icon:this.data.tab==="activities"?"walk":x.unit==="ml"?"cup":x.group==="蔬果"?"leaf":this.data.tab==="recipes"?"book":x.group==="肉蛋奶"?"protein":"bowl",conflictsText:(x.conflicts||[]).join("、"),ingredientsText:(x.ingredients||[]).join("、")}))});
+    this.setData({categories,category,totalCount:filtered.length,shown:filtered.slice(0,this.data.limit).map(x=>({...x,categoryLabel:group(x),kcalLabel:Number(x.kcal||0).toFixed(2),iconPath:foodIcon(x,this.data.tab),conflictsText:(x.conflicts||[]).join("、"),ingredientsText:(x.ingredients||[]).join("、")}))});
   },
   chooseCategory(e){this.setData({category:e.currentTarget.dataset.key,activeId:"",limit:10});this.applyFilter();},
   toggleFavorites(){this.setData({favoritesOnly:!this.data.favoritesOnly,category:"all",activeId:"",limit:10});this.applyFilter();},
