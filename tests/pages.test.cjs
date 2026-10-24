@@ -863,3 +863,10 @@ test("event detail routes to mandatory contact registration and synchronizes pro
  await service.verifyEvent(first.id,reg.userId,p.data.event.conditions.map(()=>true));await p.refresh();assert.equal(p.data.cta,"领取全部奖励");await p.primary();assert.equal(p.data.cta,"奖励已领取");assert.equal(p.data.ctaDisabled,true);assert.equal(p.onShareAppMessage().path,"/pages/event-detail/index?id="+first.id);
  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+
+test("joined team dashboard computes real daily completion streaks and pending member filters",()=>{
+ const p=loadPage("team-detail");const members=[{userId:"a",nickname:"甲",isMe:true},{userId:"b",nickname:"乙"}];p.setData({days:7,taskLabels:[{id:"signin",label:"每日签到"},{id:"early",label:"早起打卡"}],team:{id:"squad",name:"同行",start:"2026-10-23",end:"2026-10-29",isMember:true,launched:true,members:["a","b"],memberProfiles:members,memberships:members.map(m=>({userId:m.userId,joined:"2026-10-23"})),tasks:["signin","early"],checks:[{userId:"a",task:"signin",date:"2026-10-23"},{userId:"a",task:"early",date:"2026-10-23"},{userId:"a",task:"signin",date:"2026-10-24"},{userId:"a",task:"early",date:"2026-10-24"},{userId:"b",task:"signin",date:"2026-10-24"}]}});
+ p.renderDashboard("2026-10-24");assert.equal(p.data.dashboardMode,true);assert.equal(p.data.todayPercent,50);assert.equal(p.data.completeCount,1);assert.equal(p.data.pendingCount,1);assert.equal(p.data.members[0].streak,2);assert.equal(p.data.members[1].status,"部分完成");assert.ok(p.data.todayTasks.every(t=>t.done));p.chooseMemberFilter({currentTarget:{dataset:{filter:"pending"}}});assert.deepEqual(p.data.visibleMembers.map(m=>m.userId),["b"]);
+ p.data.team.launched=false;p.renderDashboard("2026-10-24");assert.equal(p.data.phase,"等待开赛");assert.equal(p.data.todayActive,false);assert.equal(p.data.todayPercent,0);assert.equal(p.data.pendingCount,0);assert.equal(p.data.dayNumber,0);
+});
