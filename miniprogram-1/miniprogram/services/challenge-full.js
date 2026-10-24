@@ -215,6 +215,7 @@ function createChallengeFullDomain(c) {
     const u = s.session && s.session.userId;
     return {
       ...clone(t),
+      earlyBefore: t.earlyBefore || "08:00",
       invite: t.owner === u ? t.invite : "",
       memberProfiles: t.members.map(userId=>({userId,nickname:userId===u?s.profile.nickname:(full(s).users[userId]||{}).nickname||"轻动伙伴",isMe:userId===u,isCaptain:userId===t.owner})),
       isCaptain: t.owner === u,
@@ -618,6 +619,9 @@ function createChallengeFullDomain(c) {
     },
     createTeam(v) {
       return change((s) => {
+        if (typeof v.earlyBefore !== "string" || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v.earlyBefore) || v.earlyBefore === "00:00") fail("请设置有效的早起打卡截止时间（晚于00:00）");
+        const tasks = v.tasks === undefined ? ["signin", "early", "weight"] : v.tasks;
+        if (!Array.isArray(tasks) || tasks.length !== 3 || !["signin", "early", "weight"].every(t => tasks.includes(t))) fail("新小队自动启用每日签到、早起打卡、体重记录三项任务");
         const u = requireCity(s),
           days = (Date.parse(v.end) - Date.parse(v.start)) / 86400000 + 1;
         const t = {
@@ -627,7 +631,8 @@ function createChallengeFullDomain(c) {
           method: v.method || "open",
           start: v.start,
           end: v.end,
-          tasks: [...new Set(v.tasks || [])],
+          tasks: ["signin", "early", "weight"],
+          earlyBefore: v.earlyBefore,
           city: city(s),
           owner: u,
           members: [u],
@@ -647,10 +652,10 @@ function createChallengeFullDomain(c) {
           days < 7 ||
           days > 365 ||
           !["open", "approval", "invite"].includes(t.method) ||
-          t.tasks.length < 2 ||
+          t.tasks.length !== 3 ||
           t.tasks.some((x) => !["early", "signin", "weight"].includes(x))
         )
-          fail("人数3–100，周期7–365天，至少选择2项任务");
+          fail("人数3–100，周期7–365天，三项习惯任务自动启用");
         full(s).teams.push(t);
         return teamView(s, t);
       });
@@ -667,7 +672,7 @@ function createChallengeFullDomain(c) {
       const t=full(s).teams.find(t=>!t.cancelled&&t.invite===value);
       if(!t)fail("邀请码无效，请核对后重试");
       if(t.inviteExpires&&today()>=t.inviteExpires)fail("邀请码已过期，请好友重新生成");
-      return {id:t.id,name:t.name,city:t.city,start:t.start,end:t.end,max:t.max,memberCount:t.members.length,launched:t.launched,closed:!!t.closed,taskCount:t.tasks.length,method:t.method,alreadyRequested:!!(s.session&&t.requests.includes(s.session.userId)),alreadyJoined:!!(s.session&&t.members.includes(s.session.userId))};
+      return {id:t.id,name:t.name,city:t.city,start:t.start,end:t.end,max:t.max,memberCount:t.members.length,launched:t.launched,closed:!!t.closed,taskCount:t.tasks.length,earlyEnabled:t.tasks.includes("early"),earlyBefore:t.earlyBefore||"08:00",method:t.method,alreadyRequested:!!(s.session&&t.requests.includes(s.session.userId)),alreadyJoined:!!(s.session&&t.members.includes(s.session.userId))};
     },
     joinTeamByInvite(code) {
       const s = read();
@@ -775,17 +780,11 @@ function createChallengeFullDomain(c) {
           !t.tasks.includes(task)
         )
           fail("不在有效任务周期");
-        if (
-          task === "early" &&
-          Number(
-            new Intl.DateTimeFormat("en-GB", {
-              timeZone: "Asia/Shanghai",
-              hour: "2-digit",
-              hourCycle: "h23",
-            }).format(new Date(now())),
-          ) >= 8
-        )
-          fail("请在北京时间08:00前完成");
+        if (task === "early") {
+          const cutoff=t.earlyBefore || "08:00", parts=cutoff.split(":"), beijing=new Date(now()+8*3600000);
+          if (beijing.getUTCHours()*60+beijing.getUTCMinutes() >= Number(parts[0])*60+Number(parts[1]))
+            fail("请在北京时间"+cutoff+"前完成早起打卡");
+        }
         if (task === "weight" && !weights(s, u).some((r) => r.date === d))
           fail("请先记录今日体重");
         if (

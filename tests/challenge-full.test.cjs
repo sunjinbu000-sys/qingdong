@@ -65,25 +65,49 @@ function fixture() {
     },
   };
 }
+test("new teams require three automatic tasks and an explicitly selected early deadline",()=>{
+  const x=fixture(),a=x.api,input={name:"早起同行",max:3,method:"open",start:"2026-10-21",end:"2026-10-27",tasks:["signin","early","weight"]};
+  for(const earlyBefore of [undefined,null,"","8:30","24:00","00:00",830])assert.throws(()=>a.createTeam({...input,earlyBefore}),/早起/);
+  assert.equal(a.listTeams().length,0);
+  assert.throws(()=>a.createTeam({...input,earlyBefore:"08:30",tasks:["signin","weight"]}),/三项/);
+  const t=a.createTeam({...input,earlyBefore:"08:30"});assert.equal(t.earlyBefore,"08:30");assert.deepEqual(t.tasks,["signin","early","weight"]);
+});
+test("captain and members share a strict Beijing early cutoff while daily signin works all day",()=>{
+  const x=fixture(),a=x.api,t=a.createTeam({name:"早起同行",max:3,method:"open",start:"2026-10-21",end:"2026-10-27",tasks:["signin","early","weight"],earlyBefore:"08:30"});
+  x.user("b");a.joinTeam(t.id);x.user("c");a.joinTeam(t.id);x.user("a");a.launchTeam(t.id);
+  x.clock("2026-10-21T00:29:59.999Z");a.checkTeamTask(t.id,"early");x.user("b");a.checkTeamTask(t.id,"early");
+  x.clock("2026-10-21T00:30:00Z");for(const u of ["a","b","c"]){x.user(u);assert.throws(()=>a.checkTeamTask(t.id,"early"),/08:30/);}
+  assert.equal(a.getTeam(t.id).checks.filter(c=>c.task==="early").length,2);
+  x.clock("2026-10-21T15:59:59.999Z");for(const u of ["a","b","c"]){x.user(u);a.checkTeamTask(t.id,"signin");}
+  x.clock("2026-10-21T16:00:00Z");x.user("a");a.checkTeamTask(t.id,"signin");
+  assert.deepEqual(a.getTeam(t.id).checks.filter(c=>c.userId==="a"&&c.task==="signin").map(c=>c.date),["2026-10-21","2026-10-22"]);
+});
+test("legacy teams keep their existing tasks and 08:00 early cutoff",()=>{
+  const x=fixture(),a=x.api,t=a.createTeam({name:"旧队",max:3,start:"2026-10-21",end:"2026-10-27",earlyBefore:"09:00"});
+  const stored=x.s.full.teams.find(v=>v.id===t.id);delete stored.earlyBefore;stored.tasks=["signin","early"];stored.tasksSnapshot=stored.tasks.slice();
+  x.user("b");a.joinTeam(t.id);x.user("c");a.joinTeam(t.id);x.user("a");a.launchTeam(t.id);
+  assert.deepEqual(a.getTeam(t.id).tasks,["signin","early"]);assert.equal(a.getTeam(t.id).earlyBefore,"08:00");
+  x.clock("2026-10-20T23:59:59Z");a.checkTeamTask(t.id,"early");x.user("b");x.clock("2026-10-21T00:00:00Z");assert.throws(()=>a.checkTeamTask(t.id,"early"),/08:00/);
+});
 test("final V0.30 supports simultaneous teams with per-team review and member deduplication", () => {
   const x = fixture(),
     a = x.api;
   assert.throws(() =>
-    a.createTeam({
+    a.createTeam({earlyBefore:"08:00",
       name: "短",
       max: 3,
       start: "2026-10-21",
       end: "2026-10-22",
-      tasks: ["signin", "weight"],
+      tasks:["signin","early","weight"],
     }),
   );
-  const t = a.createTeam({
+  const t = a.createTeam({earlyBefore:"08:00",
     name: "同行",
     max: 3,
     method: "approval",
     start: "2026-10-21",
     end: "2026-10-27",
-    tasks: ["signin", "weight"],
+    tasks:["signin","early","weight"],
   });
   x.user("b");
   assert.equal(a.joinTeam(t.id).pending, true);
@@ -93,12 +117,12 @@ test("final V0.30 supports simultaneous teams with per-team review and member de
   a.joinTeam(t.id);
   x.user("a");
   a.approveTeamMember(t.id, "c");
-  const second = a.createTeam({
+  const second = a.createTeam({earlyBefore:"08:00",
     name: "同期伙伴",
     max: 3,
     start: "2026-10-21",
     end: "2026-10-27",
-    tasks: ["signin", "weight"],
+    tasks:["signin","early","weight"],
   });
   assert.notEqual(second.id, t.id);
   x.user("b");
@@ -255,6 +279,7 @@ test("native forms create a team, process applications and pass complete event c
     detail: {
       value: {
         name: "同行",
+        earlyBefore: "08:00",
         max: "3",
         start: "2026-10-22",
         end: "2026-10-28",
@@ -369,13 +394,13 @@ test("automatic jobs freeze past snapshots and award overdue prizes once to each
 test("active team membership dates preserve departed contributions and block future tasks", () => {
   const x = fixture(),
     a = x.api,
-    t = a.createTeam({
+    t = a.createTeam({earlyBefore:"08:00",
       name: "动态小队",
       max: 5,
       method: "open",
       start: "2026-10-21",
       end: "2026-10-27",
-      tasks: ["signin", "weight"],
+      tasks:["signin","early","weight"],
     });
   x.user("b");
   a.joinTeam(t.id);
@@ -391,7 +416,7 @@ test("active team membership dates preserve departed contributions and block fut
     a.getTeam(t.id).memberships.find((m) => m.userId === "d").joined,
     "2026-10-22",
   );
-  assert.equal(a.getTeam(t.id).progress.needed, 54);
+  assert.equal(a.getTeam(t.id).progress.needed, 81);
   a.checkTeamTask(t.id, "signin");
   x.clock("2026-10-23T01:00:00Z");
   a.leaveTeam(t.id);
@@ -402,7 +427,7 @@ test("active team membership dates preserve departed contributions and block fut
     view.memberships.find((m) => m.userId === "d").left,
     "2026-10-23",
   );
-  assert.equal(view.progress.needed, 42);
+  assert.equal(view.progress.needed, 63);
   x.user("a");
   assert.throws(() => a.leaveTeam(t.id));
   a.transferTeam(t.id, "b");
@@ -412,13 +437,13 @@ test("active team membership dates preserve departed contributions and block fut
 test("team admission rejects blocked relationships and cross-city applicants", () => {
   const x = fixture(),
     a = x.api,
-    t = a.createTeam({
+    t = a.createTeam({earlyBefore:"08:00",
       name: "同城小队",
       max: 5,
       method: "open",
       start: "2026-10-21",
       end: "2026-10-27",
-      tasks: ["signin", "weight"],
+      tasks:["signin","early","weight"],
     });
   x.s.full.community = { blocks: [{ from: "a", to: "b" }] };
   x.user("b");
@@ -561,7 +586,7 @@ test("operator sees form values only for own-city events, public cards never inc
 
 test("invite code resolves a team and retains existing admission guards", () => {
   const x = fixture(), a = x.api;
-  const team = a.createTeam({ name: "好友同行", max: 3, method: "invite", start: "2026-10-21", end: "2026-10-27", tasks: ["signin", "weight"] });
+  const team = a.createTeam({earlyBefore:"08:00", name: "好友同行", max: 3, method: "invite", start: "2026-10-21", end: "2026-10-27", tasks:["signin","early","weight"] });
   x.user("b");
   assert.throws(() => a.joinTeamByInvite("missing"), /邀请码/);
   const joined = a.joinTeamByInvite("  " + team.invite + "  ");

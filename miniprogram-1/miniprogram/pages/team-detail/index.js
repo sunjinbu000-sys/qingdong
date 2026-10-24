@@ -15,7 +15,7 @@ page({
       const team=await service.getTeam(this.key);
       const snapshot=await service.getSnapshot();
       const days=Math.round((Date.parse(team.end)-Date.parse(team.start))/86400000)+1;
-      this.setData({team,days,needed:Math.max(0,3-team.members.length),taskLabels:team.tasks.map(id=>({id,label:({signin:"每日签到",early:"早起打卡",weight:"体重记录"})[id]||id}))});
+      this.setData({team,days,needed:Math.max(0,3-team.members.length),taskLabels:team.tasks.map(id=>({id,label:({signin:"每日签到",early:"早起打卡",weight:"体重记录"})[id]||id,hint:id==="early"?"北京时间每天 "+(team.earlyBefore||"08:00")+" 前完成，队长与队员相同":id==="signin"?"每日全天可签到（北京时间）":"先保存今日体重，再完成小队任务"}))});
       this.renderDashboard(snapshot.date);
     });
   },

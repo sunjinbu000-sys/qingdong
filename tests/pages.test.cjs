@@ -736,8 +736,19 @@ test("team creation defaults to five invite-only members over seven days and ret
  const p=loadPage("team-editor");await p.refresh();assert.equal(p.data.rulesOpen,true);assert.equal(p.data.creatingFromRules,false);p.closeRules();assert.equal(p.data.rulesOpen,false);assert.equal(p.data.form.max,5);assert.equal(p.data.form.method,"invite");assert.equal(p.data.duration,7);assert.equal((Date.parse(p.data.form.end)-Date.parse(p.data.form.start))/86400000,6);
  p.capacity({detail:{value:"2"}});assert.equal(p.data.form.max,10);
  p.method({detail:{value:"1"}});assert.equal(p.data.form.method,"approval");
- p.tasks({detail:{value:["signin","weight"]}});assert.deepEqual(p.data.form.tasks,["signin","weight"]);
+ p.tasks({detail:{value:["signin","weight"]}});assert.deepEqual(p.data.form.tasks,["signin","early","weight"]);
  p.toggleAdvanced();assert.equal(p.data.advanced,true);
+});
+test("team creation blocks missing early cutoff and scrolls to its visible time field",async()=>{
+  const previous=saved,oldWx={...wx};try{
+    saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"时间设置",city:"温州"});
+    const p=loadPage("team-editor");await p.refresh();p.closeRules();p.input({currentTarget:{dataset:{key:"name"}},detail:{value:"早起同行"}});
+    assert.deepEqual(p.data.form.tasks,["signin","early","weight"]);assert.ok(p.data.taskOptions.every(t=>t.checked));assert.equal(p.data.form.earlyBefore,"");
+    let scroll,toast;wx.pageScrollTo=o=>scroll=o;wx.showToast=o=>toast=o.title;
+    await p.submit();assert.equal(scroll.selector,"#team-early-time");assert.match(toast,/早起/);assert.equal(p.data.rulesOpen,false);assert.equal(p.pendingTeam,null);
+    p.earlyTime({detail:{value:"08:30"}});assert.equal(p.data.earlyError,"");await p.submit();assert.equal(p.data.creationSummary.earlyBefore,"08:30");
+    await p.confirmCreate();const t=(await service.listTeams({city:"温州"})).find(t=>t.name==="早起同行");assert.equal(t.earlyBefore,"08:30");assert.equal(t.tasks.length,3);
+  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
 
 test("reward dropdown filters the matching category and closes on selection", async () => {
@@ -786,7 +797,7 @@ test("team invitation lookup previews basic details without joining or leaking r
  const previous=saved;try{
   saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"邀请测试",city:"温州"});const date=(await service.getSnapshot()).date;
   const end=new Date(Date.parse(date+"T00:00:00Z")+6*86400000).toISOString().slice(0,10);
-  const team=await service.createTeam({name:"同行小队",max:5,start:date,end,method:"invite",tasks:["signin","early"]});
+  const team=await service.createTeam({earlyBefore:"08:00",name:"同行小队",max:5,start:date,end,method:"invite",tasks:["signin","early","weight"]});
   const p=loadPage("team-join");p.input({detail:{value:"  "+team.invite+"  "}});await p.viewInvite();assert.equal(p.data.invitation.name,"同行小队");assert.equal(p.data.invitation.memberCount,1);assert.equal(p.data.invitation.alreadyJoined,true);assert.equal(p.data.invitation.invite,undefined);assert.equal(p.data.invitation.members,undefined);
   assert.equal((await service.getTeam(team.id)).members.length,1);p.input({detail:{value:"bad-code"}});assert.equal(p.data.invitation,null);await assert.rejects(service.getTeamInvitation("bad-code"),/无效/);
  }finally{saved=previous;}
@@ -796,8 +807,8 @@ test("team creation requires explicit confirmation in the scrollable rules sheet
  const previous=saved,oldWx={...wx};try{
   saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"创建确认",city:"温州"});
   const p=loadPage("team-editor");await p.refresh();p.input({currentTarget:{dataset:{key:"name"}},detail:{value:"温柔小队"}});
-  const before=(await service.listTeams({city:"温州"})).length;
-  await p.submit({detail:{value:{name:"温柔小队"}}});assert.equal(p.data.rulesOpen,true);assert.equal(p.data.creationSummary.name,"温柔小队");assert.equal(p.data.creationSummary.max,5);assert.equal(p.data.creationSummary.method,"仅邀请加入");assert.equal(p.data.creationSummary.tasks,"每日签到、早起打卡");assert.equal((await service.listTeams({city:"温州"})).length,before);
+  p.earlyTime({detail:{value:"08:00"}});const before=(await service.listTeams({city:"温州"})).length;
+  await p.submit({detail:{value:{name:"温柔小队"}}});assert.equal(p.data.rulesOpen,true);assert.equal(p.data.creationSummary.name,"温柔小队");assert.equal(p.data.creationSummary.max,5);assert.equal(p.data.creationSummary.method,"仅邀请加入");assert.equal(p.data.creationSummary.tasks,"每日签到、早起打卡、体重记录");assert.equal((await service.listTeams({city:"温州"})).length,before);
   p.closeRules();await p.confirmCreate();assert.equal((await service.listTeams({city:"温州"})).length,before);
   await p.submit({detail:{value:{name:"温柔小队"}}});await Promise.all([p.confirmCreate(),p.confirmCreate()]);assert.equal((await service.listTeams({city:"温州"})).length,before+1);assert.equal(p.data.rulesOpen,false);
  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
@@ -807,8 +818,8 @@ test("invited guest keeps the invitation through login and joins only after conf
  const previous=saved,oldWx={...wx};try{
   saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"队长A",city:"温州"});const date=(await service.getSnapshot()).date;
   const end=new Date(Date.parse(date+"T00:00:00Z")+6*86400000).toISOString().slice(0,10);
-  const team=await service.createTeam({name:"AB同行",max:5,start:date,end,method:"invite",tasks:["signin","early"]});const invite=await service.generateTeamInvite(team.id);
-  saved.session=null;const p=loadPage("team-join");p.onLoad({code:invite.code});await p.refresh();assert.equal(p.data.signedIn,false);assert.equal(p.data.invitation.name,"AB同行");assert.equal(p.data.invitation.taskCount,2);assert.equal(p.data.invitation.members,undefined);
+  const team=await service.createTeam({earlyBefore:"08:00",name:"AB同行",max:5,start:date,end,method:"invite",tasks:["signin","early","weight"]});const invite=await service.generateTeamInvite(team.id);
+  saved.session=null;const p=loadPage("team-join");p.onLoad({code:invite.code});await p.refresh();assert.equal(p.data.signedIn,false);assert.equal(p.data.invitation.name,"AB同行");assert.equal(p.data.invitation.taskCount,3);assert.equal(p.data.invitation.members,undefined);
   let destination="";wx.navigateTo=o=>destination=o.url;await p.join();assert.equal(destination,"/pages/account/index");assert.equal(p.data.rulesOpen,false);assert.equal(p.data.code,invite.code);
   saved.session={userId:"invited-b"};saved.profile={...saved.profile,nickname:"好友B",city:"温州"};await p.refresh();await p.join();assert.equal(p.data.rulesOpen,true);assert.equal((await service.getTeam(team.id)).members.length,1);
   p.closeRules();await p.confirmJoin();assert.equal((await service.getTeam(team.id)).members.length,1);
@@ -841,7 +852,7 @@ test("forum personal area preserves collection and interaction tabs", async () =
 test("captain invitation page automatically prepares a stable code for copying and sharing", async () => {
  const previous=saved,oldWx={...wx};try{
   saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"队长准备邀请",city:"温州"});const date=(await service.getSnapshot()).date,end=new Date(Date.parse(date+"T00:00:00Z")+6*86400000).toISOString().slice(0,10);
-  const team=await service.createTeam({name:"即点即邀请",max:5,start:date,end,method:"invite",tasks:["signin","early"]});const p=loadPage("team-invite");p.onLoad({id:team.id});await p.refresh();assert.equal(p.data.inviteAvailable,true);assert(p.data.code);assert(p.data.expires);assert.equal(p.data.code,team.invite);
+  const team=await service.createTeam({earlyBefore:"08:00",name:"即点即邀请",max:5,start:date,end,method:"invite",tasks:["signin","early","weight"]});const p=loadPage("team-invite");p.onLoad({id:team.id});await p.refresh();assert.equal(p.data.inviteAvailable,true);assert(p.data.code);assert(p.data.expires);assert.equal(p.data.code,team.invite);
   let copied;wx.setClipboardData=o=>copied=o.data;p.copy();assert.equal(copied,p.data.code);assert.equal(p.onShareAppMessage().path,"/pages/team-join/index?code="+encodeURIComponent(p.data.code));
   const code=p.data.code;await p.refresh();assert.equal(p.data.code,code);await service.dissolveTeam(team.id);await p.refresh();assert.equal(p.data.inviteAvailable,false);assert.equal(p.data.code,"");
  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}

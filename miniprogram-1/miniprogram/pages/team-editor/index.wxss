@@ -3,3 +3,7 @@
 
 /* Feature canvas matches native navigation. */
 page{background:#EEF7F3;background-image:none}
+
+.team-default-tasks{margin:30rpx 0;padding-top:25rpx;border-top:1rpx solid #CCE5DB}.team-default-tasks .team-task{display:flex;align-items:flex-start;gap:12rpx;margin:20rpx 0;color:#2B413B}.team-default-tasks .team-task>view{min-width:0;flex:1}.team-task-hint{font-size:21rpx;color:#5B7067;line-height:1.8;margin-top:5rpx}.team-early-field{padding:22rpx;border:1rpx solid #CCE5DB;border-radius:24rpx;background:#F3FAF6}.team-early-invalid{border-color:#B66A54;background:#FFF7F1}.team-required{font-size:20rpx;color:#A76148;margin-left:12rpx}.team-create .team-time-empty{color:#6C8178}
+
+.team-default-tasks .team-task .team-task-check{flex:0 0 36rpx;width:36rpx;height:36rpx;background:#287D73;color:#fff;border-radius:10rpx;display:flex;align-items:center;justify-content:center;font-size:24rpx;line-height:1;margin-top:3rpx}
