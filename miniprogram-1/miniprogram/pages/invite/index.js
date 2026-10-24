@@ -1,5 +1,6 @@
 const qrcode = require("../../services/reference/qrcode");
 const { page, service, navigate } = require("../../utils/page");
+const { shareImage } = require("../../utils/share-image");
 page({
   data: {
     invite: { records: [], tiers: [], claims: [] },
@@ -7,6 +8,8 @@ page({
     activities: [],
     rewards: [],
     role: "consumer",
+    profile: {}, claimableCount: 0,
+    statusLabels: {pending:"待处理",issued:"已发放",claimed:"已领取",fulfilled:"已完成",revoked:"已撤回",cancelled:"已取消",shipping:"配送中"},
   },
   refresh() {
     return this.loadData(async () => {
@@ -18,14 +21,19 @@ page({
       const rewards = (await service.getMyFullRewards()).filter(
         (r) => ids.includes(r.activityId) || r.type === "invite",
       );
+      const snapshot = await service.getSnapshot();
       this.setData({
         invite: await service.getInvites(),
         activities,
         rewards,
-        role: (await service.getSnapshot()).role,
+        role: snapshot.role, profile: snapshot.profile,
+        claimableCount: activities.reduce((sum,a)=>sum+a.tiers.filter(t=>t.canClaim).length,0),
       });
     });
   },
+  jump(e) { const section=e.currentTarget.dataset.section;if(["invite-activities","invite-records","invite-rewards"].includes(section))wx.pageScrollTo({selector:"#"+section,duration:250}); },
+  rules() { wx.showModal({title:"邀请好友，如何获得奖励？",content:"分享你的专属邀请码或邀请入口，好友首次注册并成功绑定后，计入成功邀请人数。同一新用户只能绑定一次。奖励按已发布活动的邀请人数、档位、名额与领取期限发放；部分活动仅能领取最高达标档位。会员奖励进入统一权益队列，实物奖励按活动规则处理。具体以本页活动说明为准。",showCancel:false,confirmText:"我知道了"}); },
+  sharePoster() { return this.action(()=>shareImage(wx,this.data.poster)); },
   copy() {
     wx.setClipboardData({
       data:
