@@ -972,7 +972,7 @@ function createOperationsDomain(c) {
         return a;
       });
     },
-    getRewardTasks() {
+    getRewardTasks(q = {}) {
       return change((s) => {
         reserve(s);
         const f = full(s);
@@ -982,7 +982,7 @@ function createOperationsDomain(c) {
               a.published &&
               a.enabled &&
               (a.city === "all" ||
-                a.city === (f.browse.city || s.profile.city)),
+                a.city === (q.scope === "account" ? s.profile.city : (f.browse.city || s.profile.city))),
           )
           .map((a) => taskView(s, a));
       });

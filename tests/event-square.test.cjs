@@ -33,3 +33,5 @@ test('contact enrollment requires name and valid mobile and keeps contacts priva
  assert.throws(()=>d.enrollEventWithContact(id,{name:'小满',phone:'13800000000'}),/不可报名/);assert.equal(d.getEvent(id).actualCount,1);
  const state=f.store.read();state.session.userId='other-person';f.store.write(state);event=d.getEvent(id);assert.equal(event.ownRegistration,null);assert.equal(event.registrations.length,0);assert.equal(JSON.stringify(d.getEventSquare()).includes('13800000000'),false);
 });
+
+test("personal event records keep the selected national or local scope",()=>{const f=setup(),d=f.domain;f.login();const state=f.store.read(),u=state.session.userId;for(const e of state.full.events){e.registrations.push({userId:u,status:"registered",values:{name:"本人"}});e.claimed.push(u);}f.store.write(state);const national=d.getEventSquare({scope:"national"}),local=d.getEventSquare({scope:"city"});assert(national.participated.some(e=>e.city==="杭州"));assert(!local.participated.some(e=>e.city==="杭州"));assert(!local.rewards.some(r=>national.participated.find(e=>e.id===r.eventId).city==="杭州"));});

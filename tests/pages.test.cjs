@@ -433,8 +433,10 @@ test("weight trend limits actual points to the chosen range and keeps latest wei
   assert.equal(p.data.goalGap, "3.0");
   assert.equal(p.data.difference, "-2.0 kg");
   p.chooseRange({ currentTarget: { dataset: { days: 30 } } });
-  assert.equal(p.data.points.length, 2);
-  assert.equal(p.data.lines.length, 1);
+  assert.equal(p.data.points.length, 1);
+  assert.equal(p.data.lines.length, 0);
+  p.chooseRange({currentTarget:{dataset:{days:90}}});
+  assert.equal(p.data.points[0].kg,69);
 });
 
 test("calendar reminder requests a daily system event with seconds timestamp", async () => {
@@ -935,7 +937,7 @@ test("home order and weight hero support synchronized weight and goal settings",
 
 test("weight forecast uses the saved goal period and remains separate from actual records", () => {
  const p=loadPage("weight-trend");p.today="2026-10-24";p.source={records:[{date:"2026-10-24",kg:70}],targetWeight:64,goalDays:6};p.renderTrend();
- assert.equal(p.data.forecastReady,true);assert.equal(p.data.forecastLines.length,6);assert.equal(p.data.forecastEnd,"2026-10-30");assert.equal(p.data.points.length,1);assert.equal(p.data.lines.length,0);
+ assert.equal(p.data.forecastReady,true);assert.equal(p.data.forecastLines.length,3);assert.equal(p.data.forecastEnd,"2026-10-27");assert.equal(p.data.points.length,1);assert.equal(p.data.lines.length,0);
  assert.ok(p.data.forecastLines.every(l=>Number.isFinite(l.width) && l.angle >= 0));
  p.source.goalDays=null;p.renderTrend();assert.equal(p.data.forecastReady,false);assert.equal(p.data.forecastLines.length,0);
 });
@@ -1027,3 +1029,16 @@ test("plan history opens a read-only dated page and return retains report select
 });
 
 test("naturally expired plans do not offer today's record task entry",()=>{const p=loadPage("ai-plan");p.setData({today:"2026-10-24"});p.showPlan({start:"2026-10-01",end:"2026-10-07",executionConfirmed:true,days:[{date:"2026-10-01",exercise:{}}],checks:[]});assert.equal(p.data.planActive,false);let route="";const previous=wx.navigateTo;wx.navigateTo=o=>route=o.url;try{p.task({currentTarget:{dataset:{type:"weight"}}});assert.equal(route,"");}finally{wx.navigateTo=previous;}});
+
+test("weight windows center today in seven days, five weeks and three months with real medians",()=>{
+ const p=loadPage("weight-trend");p.today="2026-10-24";p.source={records:[{date:"2026-10-01",kg:90},{date:"2026-10-20",kg:70},{date:"2026-10-21",kg:72},{date:"2026-10-21",kg:74},{date:"2026-10-22",kg:76},{date:"2026-10-24",kg:78}],targetWeight:65,goalDays:90};p.renderTrend();
+ assert.equal(p.data.buckets.length,7);assert.equal(p.data.buckets[0].start,"2026-10-21");assert.equal(p.data.buckets[3].start,p.today);assert.equal(p.data.buckets[6].start,"2026-10-27");assert.equal(p.data.points.find(v=>v.date==="2026-10-21").kg,74);assert.equal(p.data.points.some(v=>v.date>p.today),false);
+ p.chooseRange({currentTarget:{dataset:{days:30}}});assert.equal(p.data.buckets.length,5);assert.equal(p.data.buckets[2].start,"2026-10-19");assert.equal(p.data.points.find(v=>v.bucket===2).kg,75);
+ p.chooseRange({currentTarget:{dataset:{days:90}}});assert.equal(p.data.buckets.length,3);assert.equal(p.data.buckets[0].start,"2026-09-01");assert.equal(p.data.buckets[1].start,"2026-10-01");assert.equal(p.data.buckets[2].start,"2026-11-01");assert.equal(p.data.points.find(v=>v.bucket===1).kg,76);
+ p.today="2026-01-01";p.source={records:[]};p.renderTrend();assert.equal(p.data.buckets[0].start,"2025-12-01");assert.equal(p.data.points.length,0);
+});
+test("invite shortcuts navigate to dedicated data activities and rewards pages",()=>{const p=loadPage("invite"),previous=wx.navigateTo;let url;wx.navigateTo=o=>url=o.url;try{for(const [section,mode]of [["invite-records","records"],["invite-activities","activities"],["invite-rewards","rewards"]]){p.jump({currentTarget:{dataset:{section}}});assert.equal(url,"/pages/invite-data/index?mode="+mode);}}finally{wx.navigateTo=previous;}const markup=fs.readFileSync(path.join(root,"pages/invite/index.wxml"),"utf8");assert.equal(markup.includes('id="invite-activities"'),false);assert.equal(markup.includes('id="invite-records"'),false);assert.equal(markup.includes('id="invite-rewards"'),false);});
+
+test("event mine keeps the scope controls and adds its child filters below the main tabs",async()=>{const p=loadPage("events");await p.refresh();p.setData({scope:"city"});p.selectFilter({currentTarget:{dataset:{key:"mine"}}});assert.equal(p.data.scope,"city");p.selectMine({currentTarget:{dataset:{key:"rewards"}}});assert.equal(p.data.filter,"mine");assert.equal(p.data.scope,"city");const markup=fs.readFileSync(path.join(root,"pages/events/index.wxml"),"utf8");assert.equal(markup.includes('wx:if="{{filter!==\'mine\'}}" class="event-scopes"'),false);assert(markup.indexOf('class="event-scopes"')<markup.indexOf('class="events-tabs"'));assert(markup.indexOf('class="events-tabs"')<markup.indexOf('class="events-mine-tabs"'));});
+
+test("dedicated invite pages load personal binding data and claim rewards through the common service",async()=>{const previous=saved,oldWx={...wx};try{saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"邀请人",city:"温州"});const date=(await service.getSnapshot()).date;await service.setDemoRole("hq");const plan=(await service.getCatalog())[0],activity=await service.saveRewardActivity({title:"当前邀请回归",type:"invite",city:"温州",start:date,end:date,claimUntil:date,published:true,tiers:[{name:"一位好友",target:1,quota:10,planId:plan.id,rewardType:"member"}]});await service.setDemoRole("consumer");const invite=await service.getInvites();await service.registerInvitedVisitor({code:invite.code,visitorId:"navigation-visitor",nickname:"绑定好友"});const records=loadPage("invite-data");records.onLoad({mode:"records"});await records.refresh();assert.equal(records.data.invite.records.length,1);const activities=loadPage("invite-data");activities.onLoad({mode:"activities"});await activities.refresh();const visible=activities.data.activities.find(a=>a.id===activity.id);assert.equal(visible.tiers[0].canClaim,true);await activities.claim({currentTarget:{dataset:{activity:activity.id,tier:visible.tiers[0].id}}});const rewards=loadPage("invite-data");rewards.onLoad({mode:"rewards"});await rewards.refresh();assert.equal(rewards.data.rewards.filter(r=>r.activityId===activity.id).length,1);}finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}});

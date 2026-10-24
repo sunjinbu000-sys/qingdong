@@ -1002,10 +1002,11 @@ function createChallengeFullDomain(c) {
         const own=u?e.registrations.filter(r=>r.userId===u):[],registered=own.some(r=>r.status==="registered"),claimed=!!u&&e.claimed.includes(u),count=e.registrations.filter(r=>r.status==="registered").length;
         return {id:e.id,title:e.title,coverImage:e.coverImage||"",actualCount:count,startLabel:String(e.start||"").replace("T"," "),participantMarkers:Array.from({length:Math.min(count,6)},(_,i)=>i),city:e.city,scope:e.scope,canEnroll:e.scope==="all"||e.city===region,location:e.location,start:e.start,end:e.end,regStart:e.regStart,regEnd:e.regEnd,status:e.status,capacity:e.capacity,displayCount:count+(e.virtualCount||0),registered,claimed,participationStatus:claimed?"已领取奖励":e.status!=="published"?"活动已终止":registered?"已报名":own.length?"报名已取消":"未报名",available:e.status==="published"&&at>=e.regStart&&at<=e.regEnd&&count<e.capacity&&!registered,rewardNames:e.rewards.map(r=>r.name).join("、")};
       };
+      const matchesScope=e=>q.scope!=="city" || e.scope==="all" || e.city===region;
       const publicEvents=f.events.filter(e=>e.status==="published"&&(q.scope==="national"||e.scope==="all"||e.city===region));
-      const participated=u?f.events.filter(e=>e.registrations.some(r=>r.userId===u)).map(projection).reverse():[];
+      const participated=u?f.events.filter(e=>matchesScope(e)&&e.registrations.some(r=>r.userId===u)).map(projection).reverse():[];
       const rewards=[];
-      if(u)for(const e of f.events.filter(e=>e.claimed.includes(u))){
+      if(u)for(const e of f.events.filter(e=>matchesScope(e)&&e.claimed.includes(u))){
         const receipt=(e.claimReceipts||[]).find(r=>r.userId===u);
         const items=(receipt?receipt.rewards:e.rewards).map((reward,index)=>{const key="event:"+e.id+":"+u+":"+index,g=(s.grants||[]).find(x=>x.id===key&&x.userId===u),p=f.products.find(x=>x.id===key&&x.userId===u);return g?{name:g.title,type:"member",days:g.days,dailyLimit:g.dailyLimit,status:g.revoked?"已撤回":""}:p?{name:p.title,type:"product",quantity:p.quantity,status:p.status}:{name:reward.name,type:reward.type,days:reward.days,dailyLimit:reward.dailyLimit,quantity:reward.quantity};});
         rewards.push({id:e.id,eventId:e.id,title:e.title,date:receipt?receipt.date:"",items});

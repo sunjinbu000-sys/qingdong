@@ -29,6 +29,7 @@
     "pages/health-overview/index",
     "pages/health-profile/index",
     "pages/invite/index",
+    "pages/invite-data/index",
     "pages/invite-register/index",
     "pages/member-services/index",
     "pages/membership/index",

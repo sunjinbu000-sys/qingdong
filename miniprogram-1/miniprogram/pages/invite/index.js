@@ -1,3 +1,4 @@
+const { loadInviteDashboard } = require("../../services/invite-dashboard");
 const qrcode = require("../../services/reference/qrcode");
 const { page, service, navigate } = require("../../utils/page");
 const { shareImage } = require("../../utils/share-image");
@@ -14,25 +15,11 @@ page({
   refresh() {
     return this.loadData(async () => {
       if (!(await this.requireAccount())) return;
-      const activities = (await service.getRewardTasks()).filter(
-        (a) => a.type === "invite",
-      );
-      const ids = activities.map((a) => a.id);
-      const rewards = (await service.getMyFullRewards()).filter(
-        (r) => ids.includes(r.activityId) || r.type === "invite",
-      );
-      const snapshot = await service.getSnapshot();
-      this.setData({
-        invite: await service.getInvites(),
-        activities,
-        rewards,
-        role: snapshot.role, profile: snapshot.profile,
-        claimableCount: activities.reduce((sum,a)=>sum+a.tiers.filter(t=>t.canClaim).length,0),
-      });
+      this.setData(await loadInviteDashboard(service));
     });
   },
-  jump(e) { const section=e.currentTarget.dataset.section;if(["invite-activities","invite-records","invite-rewards"].includes(section))wx.pageScrollTo({selector:"#"+section,duration:250}); },
-  rules() { wx.showModal({title:"邀请好友，如何获得奖励？",content:"分享你的专属邀请码或邀请入口，好友首次注册并成功绑定后，计入成功邀请人数。同一新用户只能绑定一次。奖励按已发布活动的邀请人数、档位、名额与领取期限发放；部分活动仅能领取最高达标档位。会员奖励进入统一权益队列，实物奖励按活动规则处理。具体以本页活动说明为准。",showCancel:false,confirmText:"我知道了"}); },
+  jump(e) { const mode=({"invite-records":"records","invite-activities":"activities","invite-rewards":"rewards"})[e.currentTarget.dataset.section];if(mode)navigate("/pages/invite-data/index?mode="+mode); },
+  rules() { wx.showModal({title:"邀请好友，如何获得奖励？",content:"分享你的专属邀请码或邀请入口，好友首次注册并成功绑定后，计入成功邀请人数。同一新用户只能绑定一次。奖励按已发布活动的邀请人数、档位、名额与领取期限发放；部分活动仅能领取最高达标档位。会员奖励进入统一权益队列，实物奖励按活动规则处理。具体以邀请活动页面说明为准。",showCancel:false,confirmText:"我知道了"}); },
   sharePoster() { return this.action(()=>shareImage(wx,this.data.poster)); },
   copy() {
     wx.setClipboardData({
