@@ -83,6 +83,8 @@ function createGrowthFullDomain(ctx) {
       sessions: [],
       receipts: [],
     };
+    f.ads.startup = f.ads.startup || { enabled: false, type: "video", mediaUrl: "", unitId: "", dailyLimit: 1, duration: 8, skipAfter: 3 };
+    f.ads.startupReceipts = f.ads.startupReceipts || [];
     f.payment = f.payment || {
       enabled: false,
       iosAllowed: false,
@@ -789,6 +791,40 @@ function createGrowthFullDomain(ctx) {
         a.config.revision = (a.config.revision || 0) + 1;
         audit(s, "AI配置", "模拟配置更新，不含密钥");
         return copy(c);
+      });
+    },
+    getStartupConfig() { const s=read();admin(s);return copy(init(s).ads.startup); },
+    saveStartupConfig(input) {
+      return change(s=>{
+        admin(s);const c={...init(s).ads.startup,...input};
+        if(typeof c.enabled!=="boolean" || !["image","video","tencent"].includes(c.type))throw Error("开屏类型或开关无效");
+        c.dailyLimit=integer(c.dailyLimit,"每人每日展示次数",0,100);
+        c.duration=integer(c.duration,"展示时长",3,60);c.skipAfter=integer(c.skipAfter,"跳过等待秒数",0,c.duration);
+        c.mediaUrl=String(c.mediaUrl||"").trim();c.unitId=String(c.unitId||"").trim();
+        if(c.mediaUrl && (!/^https:\/\/[^\s]+$/.test(c.mediaUrl)||c.mediaUrl.length>1500))throw Error("素材请填写有效HTTPS链接");
+        if(c.unitId && !/^adunit-[a-zA-Z0-9_-]{1,120}$/.test(c.unitId))throw Error("请填写微信流量主广告位ID（adunit-开头），不是网页链接");
+        if(c.enabled && (c.type==="tencent"?!c.unitId:!c.mediaUrl))throw Error("请先配置对应素材或广告位ID");
+        init(s).ads.startup=c;audit(s,"开屏配置","更新类型、素材与每日频次");return copy(c);
+      });
+    },
+    beginStartupDisplay() {
+      return change(s=>{
+        const a=init(s).ads,c=a.startup,userId=(s.session&&s.session.userId)||"guest";
+        const grant=membershipView(s,today()).activeGrant;
+        if(!c.enabled || !c.dailyLimit || (grant && (grant.features||[]).includes("adFree")))return null;
+        a.startupReceipts=a.startupReceipts.filter(r=>r.date===today());
+        const used=a.startupReceipts.filter(r=>r.userId===userId && (r.status==="shown" || (r.status==="reserved" && now()-r.createdAt<90000))).length;
+        if(used>=c.dailyLimit)return null;
+        const receipt={id:id("startup"),userId,date:today(),createdAt:now(),status:"reserved"};a.startupReceipts.push(receipt);
+        return {...copy(c),receiptId:receipt.id};
+      });
+    },
+    finishStartupDisplay(receiptId,shown) {
+      return change(s=>{
+        const userId=(s.session&&s.session.userId)||"guest",r=init(s).ads.startupReceipts.find(r=>r.id===receiptId&&r.userId===userId&&r.date===today());
+        if(!r)return false;
+        if(r.status==="reserved")r.status=shown===true && now()-r.createdAt<90000?"shown":"failed";
+        return r.status==="shown";
       });
     },
     getAdsConfig() {

@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/startup/index",
     "pages/health/index",
     "pages/challenges/index",
     "pages/profile/index",

@@ -617,6 +617,7 @@ function createCommunityDomain(c) {
         d.follows = (d.follows || []).filter(f => f.from !== userId && f.to !== userId);
         if(d.profileBios)delete d.profileBios[userId];
         s.full.foodFavorites=(s.full.foodFavorites||[]).filter(x=>x.userId!==userId);
+        if(s.full.ads)s.full.ads.startupReceipts=(s.full.ads.startupReceipts||[]).filter(x=>x.userId!==userId);
         d.deleted = true;
         s.full.messages = s.full.messages.filter(
           (x) => x.userId && x.userId !== userId,

@@ -1,1 +1,4 @@
 .config-row{padding:24rpx 0;border-bottom:1rpx solid #edf0e8}.config-row input{background:#f4f6ef;padding:20rpx;border-radius:14rpx;margin-top:12rpx}.task-row{padding:20rpx 0}.day-nav{white-space:nowrap}.day-nav button{display:inline-block;margin-right:12rpx}.poster{width:600rpx;height:800rpx}.actions{display:flex;gap:16rpx;flex-wrap:wrap}
+.startup-type-row{display:flex;gap:12rpx;margin-top:20rpx}.page .startup-type{flex:1;min-width:0;width:0;padding:17rpx 8rpx;font-size:25rpx;background:#f1eafa;color:#9b85bf}.page .startup-type.selected{background:#9780cf;color:white}
+
+.page .config-row input{display:block;width:100%;box-sizing:border-box;min-width:0}

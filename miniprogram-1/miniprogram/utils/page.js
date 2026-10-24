@@ -69,6 +69,7 @@ function page(options) {
         return true;
       },
       async onShow() {
+        await require("./startup-display").maybeShow();
         if (this.refresh) await this.refresh();
         const pages = getCurrentPages(),
           current = pages[pages.length - 1];
