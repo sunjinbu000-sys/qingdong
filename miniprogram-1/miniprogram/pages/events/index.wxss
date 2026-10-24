@@ -5,3 +5,5 @@
 
 /* Feature canvas matches native navigation. */
 page{background:#FCF2EB;background-image:none}
+
+.qd-theme.qd-event .events-tabs{background:#FFFFFF}.qd-theme.qd-event .event-scope-button,.qd-theme.qd-event .events-tab,.qd-theme.qd-event .events-mine-tab{background:#FFFFFF;color:var(--qd-muted)}.qd-theme.qd-event .event-scope-selected,.qd-theme.qd-event .events-tab-active,.qd-theme.qd-event .events-mine-active{background:var(--qd-soft);color:var(--qd-primary);border-color:var(--qd-primary)}

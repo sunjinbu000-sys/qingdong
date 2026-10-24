@@ -5,4 +5,4 @@
 /* Feature canvas matches native navigation. */
 page{background:#F0F5FA;background-image:none}
 
-.qd-theme.qd-weight .weight-line{background:#2878c9}.qd-theme.qd-weight .weight-dot{background:#2878c9;box-shadow:0 0 0 2rpx #2878c9}.qd-theme.qd-weight .weight-forecast-line{border-top-color:#d67822}.weight-legend-real{color:#2878c9;margin-right:28rpx}.weight-legend-forecast{color:#b65c10}.weight-today-line{position:absolute;top:20rpx;bottom:20rpx;border-left:1rpx dashed #c7d5e4}.weight-x-axis{position:relative;display:block;width:540rpx;height:36rpx}.weight-x-label{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap;font-size:18rpx}
+.qd-theme.qd-weight .weight-line{background:#2878c9}.qd-theme.qd-weight .weight-dot{background:#2878c9;box-shadow:0 0 0 2rpx #2878c9}.qd-theme.qd-weight .weight-forecast-line{border-top-color:#d67822}.weight-legend-real{color:#2878c9;margin-right:28rpx}.weight-legend-forecast{color:#b65c10}.weight-x-axis{position:relative;display:block;width:540rpx;height:36rpx}.weight-x-label{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap;font-size:18rpx}
