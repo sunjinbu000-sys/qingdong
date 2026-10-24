@@ -34,3 +34,7 @@ page{background:#EFF7F6;background-image:none}
 .page.forum-page .post-interactions{gap:12rpx;flex-shrink:0}
 .page.forum-page .post-like,.page.forum-page .post-comment{min-width:88rpx;min-height:88rpx;justify-content:center;gap:10rpx;padding:12rpx 6rpx;font-size:28rpx;line-height:1.4;box-sizing:border-box}
 .page.forum-page .post-interaction-icon{width:48rpx;height:48rpx;flex-shrink:0}
+
+.page .forum-personal-stats .forum-stat-button{width:100%;min-width:0;margin:0;padding:14rpx 2rpx;background:transparent;color:#5B6F72;border-radius:16rpx;font-size:24rpx;line-height:1.6}.forum-stat-button:active{background:#FFFFFF66}
+
+.page .forum-personal-stats .forum-stat-button{min-height:88rpx}

@@ -241,6 +241,21 @@ test("forum more menu shares the selected public post through a native share but
   assert.match(markup,/open-type="share"/);
   assert.ok(!fs.readFileSync(path.join(root,"pages/forum/index.js"),"utf8").includes("取消收藏"));
 });
+test("forum personal counters open matching lists and relation search follow and post links work",async()=>{
+ const previous=saved,oldWx={...wx},service=require("../miniprogram-1/miniprogram/services/index"),original={getForumRelations:service.getForumRelations,followForumUser:service.followForumUser};
+ try{
+  saved=undefined;await service.loginDemo();await service.saveProfile({nickname:"互动用户",city:"温州"});
+  let target,following=false;wx.navigateTo=o=>target=o.url;
+  const forum=loadPage("forum");for(const type of ["following","followers","likes"]){forum.personalList({currentTarget:{dataset:{type}}});assert.equal(target,"/pages/forum-relations/index?type="+type);}
+  service.getForumRelations=async type=>({type,total:2,rows:[{id:"a",userId:"fan",nickname:"小河",canFollow:true,follower:true,following,postId:"post&1",postTitle:"记录日常"},{id:"b",userId:"other",nickname:"小海",canFollow:false,following:false}]});
+  service.followForumUser=async user=>{assert.equal(user,"fan");following=!following;return{following};};
+  const p=loadPage("forum-relations");p.onLoad({type:"followers"});await p.refresh();assert.equal(p.data.shown.length,2);assert.equal(p.data.rows[0].followLabel,"回关");
+  p.search({detail:{value:"小河"}});assert.equal(p.data.shown.length,1);await p.follow({currentTarget:{dataset:{user:"fan"}}});assert.equal(p.data.shown[0].followLabel,"互相关注");assert.equal(p.data.query,"小河");
+  p.search({detail:{value:"找不到"}});assert.equal(p.data.shown.length,0);p.search({detail:{value:""}});assert.equal(p.data.shown.length,2);
+  p.post({currentTarget:{dataset:{id:"post&1"}}});assert.equal(target,"/pages/forum-detail/index?id=post%261");
+  p.author({currentTarget:{dataset:{user:"fan"}}});assert.equal(target,"/pages/public-profile/index?userId=fan");
+ }finally{saved=previous;Object.assign(service,original);Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});
 test("every registered page loads both signed out and signed in, with event handlers present", async () => {
   const app = JSON.parse(fs.readFileSync(path.join(root, "app.json"), "utf8"));
   const service = require("../miniprogram-1/miniprogram/services/index");

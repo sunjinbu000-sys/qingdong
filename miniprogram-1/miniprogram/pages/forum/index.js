@@ -130,6 +130,7 @@ page({
     return post?{title:post.title||String(post.text||'轻友的生活分享').slice(0,42),path:'/pages/forum-detail/index?id='+encodeURIComponent(post.id)}:{title:'轻友论坛',path:'/pages/forum/index'};
   },
   editBio(){if(!this.data.signedIn)return navigate("/pages/account/index");wx.showModal({title:"编辑个人简介",editable:true,content:this.data.personal.bio||"",placeholderText:"介绍一下自己（最多120字）",confirmText:"保存",success:r=>{if(r.confirm)this.action(async()=>{await service.saveForumBio(r.content||"");await this.refresh();wx.showToast({title:"简介已更新",icon:"success"});});}});},
+  personalList(e){const type=e.currentTarget.dataset.type;if(["following","followers","likes"].includes(type))navigate("/pages/forum-relations/index?type="+type);},
   publish() {
     navigate(
       this.data.signedIn ? "/pages/forum-editor/index" : "/pages/account/index",

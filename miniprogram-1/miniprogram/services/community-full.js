@@ -178,14 +178,29 @@ function createCommunityDomain(c) {
       anonymous: v.anonymous !== false,
     };
   };
+  function relationRows(s,type) {
+    const userId=c.requireLogin(s),d=init(s),follows=d.follows||[];
+    if(!["following","followers","likes"].includes(type))throw Error("请选择有效的互动列表");
+    const person=id=>{
+      const publicPost=d.posts.find(p=>p.userId===id&&!p.anonymous&&visible(s,p));
+      const following=follows.some(f=>f.from===userId&&f.to===id),follower=follows.some(f=>f.from===id&&f.to===userId);
+      return {userId:id,nickname:id===userId?(s.profile.nickname||"我"):((s.full.users||{})[id]||{}).nickname||(publicPost&&publicPost.nickname)||"轻友",following,follower,isMe:id===userId,canFollow:id!==userId&&!blocked(s,id)&&!!(following||follower||publicPost)};
+    };
+    if(type==="likes")return d.posts.filter(p=>p.userId===userId&&p.status==="approved").flatMap(p=>[...new Set(p.likes)].filter(id=>!blocked(s,id)).map(id=>({...person(id),id:JSON.stringify([p.id,id]),postId:p.id,postTitle:p.title||p.text.slice(0,60)||"我的笔记"})));
+    const ids=[...new Set(follows.filter(f=>type==="following"?f.from===userId:f.to===userId).map(f=>type==="following"?f.to:f.from))];
+    return ids.filter(id=>!blocked(s,id)).map(id=>({...person(id),id}));
+  }
   const api = {
     followForumUser(userId) {
-      return c.change(s=>{const from=c.requireLogin(s),d=init(s);if(from===userId)throw Error("不能关注自己");if(!d.posts.some(p=>p.userId===userId&&!p.anonymous&&visible(s,p)))throw Error("暂时无法关注此用户");d.follows=d.follows||[];const index=d.follows.findIndex(f=>f.from===from&&f.to===userId);if(index<0)d.follows.push({from,to:userId});else d.follows.splice(index,1);return {following:index<0};});
+      return c.change(s=>{const from=c.requireLogin(s),d=init(s);if(from===userId)throw Error("不能关注自己");d.follows=d.follows||[];const index=d.follows.findIndex(f=>f.from===from&&f.to===userId);if(index<0&&(blocked(s,userId)||!(d.follows.some(f=>f.from===userId&&f.to===from)||d.posts.some(p=>p.userId===userId&&!p.anonymous&&visible(s,p)))))throw Error("暂时无法关注此用户");if(index<0)d.follows.push({from,to:userId});else d.follows.splice(index,1);return {following:index<0};});
+    },
+    getForumRelations(type="following") {
+      const s=c.read(),rows=relationRows(s,type);
+      return {type,rows,total:rows.length};
     },
     getForumPersonalSummary() {
-      const s=c.read(),userId=c.requireLogin(s),d=init(s),follows=d.follows||[];
-      const publicPosts=d.posts.filter(p=>p.userId===userId&&p.status==="approved");
-      return {userId,nickname:s.profile.nickname||"轻动伙伴",bio:(d.profileBios||{})[userId]||"",following:follows.filter(f=>f.from===userId).length,followers:follows.filter(f=>f.to===userId).length,likes:publicPosts.reduce((n,p)=>n+p.likes.length,0)};
+      const s=c.read(),userId=c.requireLogin(s),d=init(s);
+      return {userId,nickname:s.profile.nickname||"轻动伙伴",bio:(d.profileBios||{})[userId]||"",following:relationRows(s,"following").length,followers:relationRows(s,"followers").length,likes:relationRows(s,"likes").length};
     },
     saveForumBio(value) {
       return c.change(s=>{const userId=c.requireLogin(s),d=init(s);if(typeof value!=="string"||value.trim().length>120)throw Error("简介最多120字");const bio=value.trim();if(bio)check(s,bio);d.profileBios=d.profileBios||{};d.profileBios[userId]=bio;return {bio};});
@@ -457,7 +472,7 @@ function createCommunityDomain(c) {
         );
       return {
         userId,
-        nickname: posts[0]?.nickname || "轻友",
+        nickname: userId===uid(s)?s.profile.nickname:((s.full.users||{})[userId]||{}).nickname || posts[0]?.nickname || "轻友",
         posts: posts.map((p) => view(s, p)),
         blocked: blocked(s, userId),
       };

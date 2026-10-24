@@ -3,6 +3,28 @@ const test = require("node:test"),
 const {
   createCommunityDomain,
 } = require("../miniprogram-1/miniprogram/services/community-full");
+test("personal relation lists match counts and allow following a fan without public posts",()=>{
+ const {api,s}=fixture();api.listForumPosts();
+ const own=api.createForumPost({title:"我的改变",text:"今天认真记录自己的小改变",anonymous:false});s.full.role="hq";api.moderateForumPost(own.id,"approved","内容审核通过");
+ api.followForumUser("demo-author");s.session.userId="fan";s.full.users={fan:{nickname:"小河",weight:99}};api.followForumUser("me");api.likeForumPost(own.id);s.session.userId="me";
+ api.likeForumPost("forum-demo-1");
+ const following=api.getForumRelations("following"),fans=api.getForumRelations("followers"),likes=api.getForumRelations("likes");
+ a.equal(following.total,1);a.equal(following.rows[0].userId,"demo-author");a.equal(fans.rows[0].nickname,"小河");a.equal(fans.rows[0].canFollow,true);
+ a.equal(likes.rows[0].postId,own.id);a.equal(likes.rows[0].postTitle,"我的改变");a.equal(JSON.stringify(fans).includes('"weight"'),false);
+ const summary=api.getForumPersonalSummary();a.equal(summary.following,following.total);a.equal(summary.followers,fans.total);a.equal(summary.likes,likes.total);
+ a.equal(api.followForumUser("fan").following,true);a.equal(api.getForumRelations("followers").rows[0].following,true);
+ a.equal(api.followForumUser("fan").following,false);
+ api.blockForumUser("fan");a.equal(api.getForumRelations("followers").total,0);a.equal(api.getForumRelations("likes").total,0);a.equal(api.getForumPersonalSummary().likes,0);
+ s.session=null;a.throws(()=>api.getForumRelations("followers"),/登录/);
+});
+test("received likes exclude pending posts and never derive identities from anonymous posts",()=>{
+ const {api,s}=fixture();api.listForumPosts();
+ const publicPost=api.createForumPost({text:"我的公开日常记录",anonymous:false});s.full.role="hq";api.moderateForumPost(publicPost.id,"approved","内容审核通过");
+ const pending=api.createForumPost({text:"尚未公开的个人内容",anonymous:false});
+ s.session.userId="fan";s.profile.nickname="匿名笔记的作者名字";const anon=api.createForumPost({text:"不应暴露的匿名笔记内容",anonymous:true});api.moderateForumPost(anon.id,"approved","内容审核通过");api.likeForumPost(publicPost.id);
+ s.full.community.posts.find(p=>p.id===pending.id).likes.push("fan");s.session.userId="me";s.profile.nickname="小满";
+ const data=api.getForumRelations("likes");a.equal(data.total,1);a.equal(data.rows[0].nickname,"轻友");a.equal(data.rows[0].canFollow,false);a.equal(JSON.stringify(data).includes("匿名笔记"),false);
+});
 function fixture() {
   let s = {
       session: { userId: "me" },

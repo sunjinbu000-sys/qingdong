@@ -1,0 +1,16 @@
+page{background:#EFF7F6;background-image:none}
+.page.relations-page{padding:22rpx 24rpx 50rpx;min-height:100vh;background:#FFFFFF}
+.relations-search{display:flex;align-items:center;gap:16rpx;background:#F3F6F6;border:1rpx solid #E5EBEB;border-radius:45rpx;padding:0 22rpx}
+.relations-search-icon{width:32rpx;height:32rpx;flex-shrink:0}
+.page .relations-search input{min-width:0;flex:1;width:0;border:0;background:transparent;min-height:74rpx;padding:16rpx 0;font-size:26rpx}
+.relations-count{font-size:23rpx;color:#5B6F72;padding:25rpx 8rpx 10rpx}
+.relation-row{display:flex;align-items:center;gap:22rpx;padding:28rpx 5rpx;border-bottom:1rpx solid #E9EEEE;min-width:0}
+.relation-avatar{width:86rpx;height:86rpx;flex-shrink:0;border-radius:50%;background:#E5F2F0;padding:0;box-sizing:border-box}
+.relation-main{flex:1;min-width:0}
+.relation-name{font-size:29rpx;color:#293F44;font-weight:550;line-height:1.7;overflow-wrap:anywhere}
+.relation-caption{font-size:22rpx;color:#5B6F72;margin-top:5rpx}
+.page .relation-follow{width:auto;min-width:106rpx;max-width:180rpx;flex-shrink:0;margin:0;padding:8rpx 20rpx;border:1rpx solid #267F83;border-radius:32rpx;background:#FFFFFF;color:#267F83;font-size:24rpx;line-height:1.5;white-space:normal}
+.page .relation-follow.is-following{border-color:#D3E6E4;color:#5B6F72;background:#F3F8F7}
+.page .relation-note{display:block;width:100%;min-width:0;text-align:left;margin:6rpx 0 0;padding:0;background:transparent;color:#5B6F72;font-size:23rpx;line-height:1.7;border-radius:0;white-space:normal;overflow-wrap:anywhere}
+.relations-empty{display:flex;flex-direction:column;align-items:center;gap:24rpx;padding:100rpx 20rpx;text-align:center;color:#5B6F72;font-size:26rpx}
+.relations-empty image{width:100rpx;height:100rpx;opacity:.5}

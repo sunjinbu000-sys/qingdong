@@ -1,0 +1,14 @@
+<import src="../../components/states.wxml"/>
+<view class="page relations-page qd-theme qd-social">
+  <view class="relations-search"><image class="relations-search-icon" src="/images/ui/search.svg"/><input value="{{query}}" bindinput="search" placeholder="{{type==='likes'?'搜索昵称、笔记':'搜索昵称'}}" maxlength="60"/></view>
+  <template is="feedback" data="{{loading,error}}"/>
+  <block wx:if="{{!loading && !error}}">
+    <view class="relations-count">{{title}} · {{total}}{{type==='likes'?' 次':' 人'}}<text wx:if="{{query}}"> · 找到 {{shown.length}} 条</text></view>
+    <view wx:for="{{shown}}" wx:key="id" class="relation-row">
+      <image class="relation-avatar" src="/images/ui/community-user.svg" data-user="{{item.userId}}" bindtap="author"/>
+      <view class="relation-main"><view class="relation-name" data-user="{{item.userId}}" bindtap="author">{{item.nickname}}{{item.isMe?'（我）':''}}</view><button wx:if="{{type==='likes'}}" class="relation-note" data-id="{{item.postId}}" bindtap="post">赞了你的笔记 · {{item.postTitle}} ›</button><view wx:elif="{{type==='followers'}}" class="relation-caption">{{item.following?'你们已互相关注':'关注了你'}}</view></view>
+      <button wx:if="{{!item.isMe && item.canFollow}}" class="relation-follow {{item.following?'is-following':''}}" data-user="{{item.userId}}" bindtap="follow" disabled="{{busy}}">{{item.followLabel}}</button>
+    </view>
+    <view wx:if="{{!shown.length}}" class="relations-empty"><image src="/images/ui/community-user.svg"/><view>{{query?'没有找到匹配的记录':type==='following'?'还没有关注轻友':type==='followers'?'还没有粉丝':'还没有收到点赞'}}</view></view>
+  </block>
+</view>
