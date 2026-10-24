@@ -1,4 +1,5 @@
 const { normalizeMealStyle, mealPreset } = require("./meal-styles");
+const { calorieSuggestion } = require("./plan-calories");
 const { assessPlanGoal } = require("./plan-goal");
 const { normalizeWeightStyle, normalizeExercise, dailyExercise } = require("./plan-preferences");
 const { membershipView } = require("./membership");
@@ -370,7 +371,7 @@ function createGrowthFullDomain(ctx) {
         preset.id === "home" ? "按家庭分餐准备；优先选择附近市场的时令蔬菜与普通食材，调味保持清淡。" : "采用清蒸、炖煮等清淡做法，保留主食，不以不吃饭或极低热量作为减脂方式。",
         "核对配料与过敏原；份量和营养数值为模拟估算，可按实际商品与食材调整。",
       ],
-      kcal: Math.ceil(Math.max(1500, minIntake) / 3),
+      kcal: slot==="dinner" ? Math.round(Math.max(1500,minIntake))-2*Math.floor(Math.max(1500,minIntake)/3) : Math.floor(Math.max(1500,minIntake)/3),
       protein: Math.round(28 * scale), carbohydrate: Math.round(65 * scale), fat: Math.round(15 * scale),
     };
   }
@@ -396,6 +397,7 @@ function createGrowthFullDomain(ctx) {
     return p;
   }
   const api = {
+    getPlanCalorieSuggestion(input) {const s=read();login(s);return calorieSuggestion(profile(s),input,init(s).ai.config);},
     assessPlanGoal(input) { const s = read(); const f = init(s); login(s); return assessPlanGoal(profile(s), input, f.ai.config); },
     getReportMealSuggestions(date) {
       const s = read(), f = init(s), userId = login(s);
@@ -488,8 +490,18 @@ function createGrowthFullDomain(ctx) {
         if (goalAssessment.tooLow) throw Error(goalAssessment.message + "请调整目标体重，不能生成此减重目标。");
         if (goalAssessment.tooFast && !input.allowRecordOnly) throw Error(goalAssessment.message + "可调整目标，或确认改为记录模式。");
         const terms = [...new Set([...restrictionList(p.restrictions || []), ...restrictionList(input.restrictions || [])])];
-        const calorieBudget = !review && Number(p.calorieGoal) > 0 ? Number(p.calorieGoal) : a.config.minIntake;
-        if (!review && Number(p.calorieGoal) > 0 && calorieBudget < a.config.minIntake) throw Error("档案热量目标低于当前计划配置下限，请先调整档案或使用记录模式");
+        if(input.activityLevel!==undefined && ![1.4,1.6,1.8].includes(Number(input.activityLevel)))throw Error("请选择有效日常活动量");
+        const supplied=input.calorieGoal!==undefined;
+        const target=supplied?(input.calorieGoal==="" || input.calorieGoal===null?null:Number(input.calorieGoal)):(Number(p.calorieGoal)||null);
+        if(target!==null && (!Number.isFinite(target)||target<=0||target>10000 || (supplied && !Number.isInteger(target))))throw Error("每日摄入热量目标须为1—10000的整数");
+        const calorieSource=target===null?"none":supplied?(input.calorieSource || "manual"):"profile";
+        if(!["none","manual","suggestion","profile"].includes(calorieSource))throw Error("热量目标来源无效");
+        if(calorieSource==="suggestion") {
+          const fresh=calorieSuggestion(p,input,a.config);
+          if(!fresh.available || fresh.kcal!==target || fresh.basis!==input.calorieBasis)throw Error("热量建议已更新，请重新确认采用或自行填写");
+        }
+        const calorieBudget=!review && target!==null?target:a.config.minIntake;
+        if(!review && calorieBudget<Math.max(1500,a.config.minIntake))throw Error("热量目标低于当前计划参考下限，请调整目标后重试");
         if (terms.join("").length > 300) throw Error("饮食限制最多300字");
         const previous = a.plans.find(x => x.userId === userId);
         const menuSeed = previous ? ((previous.request.menuSeed || 0) + 11) % 10000007 : 0;
@@ -517,13 +529,13 @@ function createGrowthFullDomain(ctx) {
           createdAt: now(),
           start: today(),
           end: add(today(), days - 1),
-          request: { days, mealStyle, weightStyle: weightStyle.id, weightStyleLabel: weightStyle.label, menuSeed, menuOffset, exercise, lossJin: goalAssessment.effectiveLossJin, requestedLossJin: goalAssessment.requestedLossJin, start: input.start, end: input.end,healthNote:String(input.healthNote||"").trim() },
+          request: { days, calorieGoal:target,calorieSource,calorieBasis:calorieSource==="suggestion"?input.calorieBasis:null,activityLevel:Number(input.activityLevel)||1.4, mealStyle, weightStyle: weightStyle.id, weightStyleLabel: weightStyle.label, menuSeed, menuOffset, exercise, lossJin: goalAssessment.effectiveLossJin, requestedLossJin: goalAssessment.requestedLossJin, start: input.start, end: input.end,healthNote:String(input.healthNote||"").trim() },
           goalAssessment,
           profile: copy(p),
           profileBasis: {
             age, sex: p.sex || "未设置", height, weight,
             targetWeight: p.targetWeight || null, direction: p.direction || "未设置", healthStatus: p.healthStatus || "无 / 不适用",
-            calorieGoal: p.calorieGoal || null, calorieApplied: !review && Number(p.calorieGoal) > 0,
+            calorieGoal: target, calorieSource, calorieApplied: !review && target!==null,
             restrictions: terms, generatedAt: now(),
           },
           restrictions: terms,
@@ -652,6 +664,7 @@ function createGrowthFullDomain(ctx) {
             "活动时段",
             "减重风格",
             "运动偏好（待确认时不执行）",
+            "已保存热量目标kcal", "目标是否用于餐单", "当日餐单合计kcal",
           ],
         ];
       for (const d of planDays(p))
@@ -669,6 +682,7 @@ function createGrowthFullDomain(ctx) {
             d.exercise.time + (d.exercise.end ? "—" + d.exercise.end : ""),
             p.request.weightStyleLabel || "未设置",
             d.exercise.requestedName ? d.exercise.requestedName + " " + d.exercise.requestedMinutes + "分钟" : "",
+            p.profileBasis && p.profileBasis.calorieGoal || "",p.profileBasis && p.profileBasis.calorieApplied?"是":"否",d.totalKcal,
           ]);
       return rows;
     },
@@ -704,6 +718,7 @@ function createGrowthFullDomain(ctx) {
       const s = read(),
         p = activePlan(s, planId);
       return (
+        (p.profileBasis && p.profileBasis.calorieGoal ? "每日热量目标："+p.profileBasis.calorieGoal+" kcal（"+(p.profileBasis.calorieApplied?"已用于餐单":"仅记录，未用于餐单")+"）\n" : "")+
         p.notice +(p.request.healthNote?"\n身体补充："+p.request.healthNote:"")+
         (p.request.weightStyleLabel ? "\n减重风格：" + p.request.weightStyleLabel : "")+
         "\n" +

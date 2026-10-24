@@ -1,5 +1,6 @@
 const { exportWorkbook } = require("../../utils/export");
 const { page, service, navigate } = require("../../utils/page");
+const {activityLevels}=require("../../services/plan-calories");
 const { weightStyles, exerciseOptions } = require("../../services/plan-preferences");
 page({
   data: {
@@ -21,6 +22,7 @@ page({
     exerciseMatches: [], exerciseSearchOpen: false,
     generationError: "",
     mealStyles: [{ id: "fatloss", label: "减脂餐", description: "清淡做法，保留主食，搭配常见蛋白质与蔬果" }, { id: "home", label: "家庭日常", description: "日常易购食材、家常做法，兼顾品类与实用" }, { id: "mixed", label: "混合搭配", description: "家庭日常与减脂餐交替安排，丰富口味" }],
+    calorieGoal:"",calorieSource:"manual",calorieBasis:null,calorieSuggestion:null,calorieStale:false,calorieLoading:false,activityLevels,activityIndex:0,
     goalAssessment: null,
     taskTypes: [
       { id: "weight", label: "记录体重（每天一次）" },
@@ -63,6 +65,9 @@ page({
           start: request ? request.start : this.data.start, end: request ? request.end : this.data.end,
           activityPreset: request ? "custom" : this.data.activityPreset,
           healthNote: request && request.healthNote || "",
+          calorieGoal:request && request.calorieGoal!==undefined ? request.calorieGoal || "" : extra.calorieGoal || "",
+          calorieSource:request && request.calorieSource || "manual",calorieBasis:request && request.calorieBasis || null,
+          activityIndex:Math.max(0,activityLevels.findIndex(a=>a.value===(request && request.activityLevel || 1.4))),
           weightStyle: style.id, weightStyleDescription: style.description,
           mealStyle: mealOption.id, mealStyleLabel: mealOption.label,
           exerciseId: request && request.exercise ? request.exercise.activityId : "stroll",
@@ -88,6 +93,7 @@ page({
   },
   input(e) {
     this.setData({ [e.currentTarget.dataset.key]: e.detail.value });
+    if(e.currentTarget.dataset.key==="calorieGoal")this.setData({calorieSource:"manual",calorieBasis:null,calorieStale:false});
     if (["days", "lossJin","healthNote"].includes(e.currentTarget.dataset.key)) this.assessGoal();
     if(e.currentTarget.dataset.key==="restrictions")this.updateRestrictionChips();
     if(["start","end"].includes(e.currentTarget.dataset.key))this.setData({activityPreset:"custom"});
@@ -129,10 +135,21 @@ page({
   todayDay(){if(!this.localPlan)return;const index=this.localPlan.days.findIndex(d=>d.date===this.data.today);this.selectDay({currentTarget:{dataset:{index:Math.max(0,index)}}});},
   toggleMealStyles() { this.setData({ mealStyleOpen: !this.data.mealStyleOpen }); },
   selectMealStyle(e) { const option = this.data.mealStyles.find(x => x.id === e.currentTarget.dataset.style); if (option) this.setData({ mealStyle: option.id, mealStyleLabel: option.label, mealStyleOpen: false }); },
+  activityLevel(e) {const index=Number(e.detail.value);if(!this.data.activityLevels[index])return;this.setData({activityIndex:index});return this.assessGoal();},
+  confirmCalories() {
+    const suggestion=this.data.calorieSuggestion;if(this.data.calorieLoading || !suggestion || !suggestion.available)return;
+    this.setData({calorieGoal:suggestion.kcal,calorieSource:"suggestion",calorieBasis:suggestion.basis,calorieStale:false});
+    wx.showToast({title:"已采用，生成计划时生效",icon:"none"});
+  },
   async assessGoal() {
-    const revision = (this.goalRevision || 0) + 1; this.goalRevision = revision;
-    try { const assessment = await service.assessPlanGoal({ days: Number(this.data.days), lossJin: Number(this.data.lossJin),healthNote:this.data.healthNote }); if (revision === this.goalRevision) this.setData({ goalAssessment: assessment, goalError: "" }); }
-    catch (error) { if (revision === this.goalRevision) this.setData({ goalAssessment: null, goalError: error.message }); }
+    const revision=(this.goalRevision || 0)+1;this.goalRevision=revision;
+    this.setData({calorieLoading:true});
+    const input={days:Number(this.data.days),lossJin:Number(this.data.lossJin),healthNote:this.data.healthNote,activityLevel:this.data.activityLevels[this.data.activityIndex].value};
+    try {
+      const [assessment,suggestion]=await Promise.all([service.assessPlanGoal(input),service.getPlanCalorieSuggestion(input)]);
+      if(revision===this.goalRevision)this.setData({goalAssessment:assessment,goalError:"",calorieSuggestion:suggestion,calorieLoading:false,
+        calorieStale:this.data.calorieSource==="suggestion" && (!suggestion.available || this.data.calorieBasis!==suggestion.basis || Number(this.data.calorieGoal)!==suggestion.kcal)});
+    } catch(error) {if(revision===this.goalRevision)this.setData({goalAssessment:null,goalError:error.message,calorieSuggestion:null,calorieLoading:false,calorieStale:this.data.calorieSource==="suggestion"});}
   },
   extendPeriod() { this.setData({ days: this.data.goalAssessment.suggestedDays }); return this.assessGoal(); },
   showPlan(p) {
@@ -161,7 +178,8 @@ page({
     return this.action(async () => {
       this.setData({generationError:""});
       try {
-      const input = { mealStyle: this.data.mealStyle, weightStyle: this.data.weightStyle, exercise: {activityId:this.data.exerciseId,name:this.data.exerciseName,minutes:Number(this.data.exerciseMinutes)}, days: Number(this.data.days), lossJin: Number(this.data.lossJin), start: this.data.start, end: this.data.end, restrictions: this.data.restrictions,healthNote:this.data.healthNote };
+      const input = { mealStyle: this.data.mealStyle, weightStyle: this.data.weightStyle, exercise: {activityId:this.data.exerciseId,name:this.data.exerciseName,minutes:Number(this.data.exerciseMinutes)}, days: Number(this.data.days), lossJin: Number(this.data.lossJin), start: this.data.start, end: this.data.end, restrictions: this.data.restrictions,healthNote:this.data.healthNote,calorieGoal:this.data.calorieGoal,calorieSource:this.data.calorieSource,calorieBasis:this.data.calorieBasis,activityLevel:this.data.activityLevels[this.data.activityIndex].value };
+      if(this.data.calorieSource==="suggestion" && (this.data.calorieLoading || this.data.calorieStale))throw Error("热量建议已更新，请重新确认采用或自行填写");
       const assessment = await service.assessPlanGoal(input);
       this.setData({ goalAssessment: assessment });
       if (assessment.tooLow) throw Error(assessment.message + "请先调整目标体重。");
@@ -179,7 +197,7 @@ page({
           id: p.id,
           start: p.start,
           request: p.request,
-          closedOn: p.closedOn,
+          closedOn: p.closedOn,dates:p.days.filter(d=>d.date<=this.data.today).map(d=>d.date),
         })),
         access: await service.getRecognitionAccess(),
       });
