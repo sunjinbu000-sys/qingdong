@@ -8,12 +8,22 @@ page({
     physicalRewards: "",
     otherRewards: "",
   },
+  coverInput(e) { this.setData({"form.coverImage":e.detail.value}); },
+  removeCover() { this.setData({"form.coverImage":""}); },
+  chooseCover() {
+    return this.action(async()=>{
+      const media=require("../../utils/media");const path=await media.chooseFoodImage(wx,["album","camera"]);if(!path)return;
+      const saved=wx.env.USER_DATA_PATH+"/qingdong-event-"+Date.now()+"-"+Math.random().toString(36).slice(2,7)+".jpg";
+      await new Promise((resolve,reject)=>wx.getFileSystemManager().copyFile({srcPath:path,destPath:saved,success:resolve,fail:()=>reject(Error("活动封面保存失败，请重试"))}));
+      this.setData({"form.coverImage":saved});
+    });
+  },
   onLoad(q) {
     this.key = q.id === "first-step" ? undefined : q.id;
   },
   refresh() {
     return this.loadData(async () => {
-      if (this.key) {
+      if (this.key && this._loadedEvent !== this.key) {
         const e = await service.getEvent(this.key);
         this.setData({
           form: e,
@@ -36,12 +46,14 @@ page({
             .map((r) => [r.name, r.quantity || 1].join("|"))
             .join("\n"),
         });
+        this._loadedEvent = this.key;
       }
     });
   },
   submit(e) {
     return this.action(async () => {
       const v = e.detail.value;
+      v.coverImage = this.data.form.coverImage || "";
       v.id = this.key;
       v.conditions = v.conditions
         .split("\n")

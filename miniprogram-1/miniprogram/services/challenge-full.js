@@ -947,7 +947,7 @@ function createChallengeFullDomain(c) {
       const s=read(),f=full(s),u=s.session&&s.session.userId,at=new Date(now()+8*3600000).toISOString().slice(0,16),region=city(s)||"温州";
       const projection=e=>{
         const own=u?e.registrations.filter(r=>r.userId===u):[],registered=own.some(r=>r.status==="registered"),claimed=!!u&&e.claimed.includes(u),count=e.registrations.filter(r=>r.status==="registered").length;
-        return {id:e.id,title:e.title,city:e.city,scope:e.scope,canEnroll:e.scope==="all"||e.city===region,location:e.location,start:e.start,end:e.end,regStart:e.regStart,regEnd:e.regEnd,status:e.status,capacity:e.capacity,displayCount:count+(e.virtualCount||0),registered,claimed,participationStatus:claimed?"已领取奖励":e.status!=="published"?"活动已终止":registered?"已报名":own.length?"报名已取消":"未报名",available:e.status==="published"&&at>=e.regStart&&at<=e.regEnd&&count<e.capacity&&!registered,rewardNames:e.rewards.map(r=>r.name).join("、")};
+        return {id:e.id,title:e.title,coverImage:e.coverImage||"",actualCount:count,startLabel:String(e.start||"").replace("T"," "),participantMarkers:Array.from({length:Math.min(count,6)},(_,i)=>i),city:e.city,scope:e.scope,canEnroll:e.scope==="all"||e.city===region,location:e.location,start:e.start,end:e.end,regStart:e.regStart,regEnd:e.regEnd,status:e.status,capacity:e.capacity,displayCount:count+(e.virtualCount||0),registered,claimed,participationStatus:claimed?"已领取奖励":e.status!=="published"?"活动已终止":registered?"已报名":own.length?"报名已取消":"未报名",available:e.status==="published"&&at>=e.regStart&&at<=e.regEnd&&count<e.capacity&&!registered,rewardNames:e.rewards.map(r=>r.name).join("、")};
       };
       const publicEvents=f.events.filter(e=>e.status==="published"&&(q.scope==="national"||e.scope==="all"||e.city===region));
       const participated=u?f.events.filter(e=>e.registrations.some(r=>r.userId===u)).map(projection).reverse():[];
@@ -1016,6 +1016,7 @@ function createChallengeFullDomain(c) {
           ...clone(v),
           id: old ? old.id : id("event"),
           title: text(v.title, "活动标题", 60),
+          coverImage: String(v.coverImage === undefined ? ((old && old.coverImage) || "") : v.coverImage).trim(),
           location: text(v.location, "地点", 100),
           detail: text(v.detail, "详情", 2000),
           city: old ? old.city : city(s),
@@ -1054,6 +1055,7 @@ function createChallengeFullDomain(c) {
             e.registrations.filter((r) => r.status === "registered").length
         )
           fail("检查时间顺序、人数、条件及奖励");
+        if(e.coverImage && (e.coverImage.length>1500 || !/^(https:\/\/|wxfile:\/\/|http:\/\/usr\/|\/images\/)[^\s]+$/.test(e.coverImage)))fail("活动封面请使用HTTPS图片链接或本机已保存的图片");
         for (const r of e.rewards)
           if (
             !["member", "physical", "other"].includes(r.type) ||

@@ -13,3 +13,12 @@ test('event scopes distinguish national activities from the current city',()=>{
  const f=setup(),d=f.domain;f.login();const national=d.getEventSquare({scope:'national'}),local=d.getEventSquare({scope:'city'});
  assert(national.available.some(e=>e.city==='杭州'));assert(!local.available.some(e=>e.city==='杭州'));assert(local.available.some(e=>e.scope==='all'));assert(national.available.find(e=>e.city==='杭州').canEnroll===false);
 });
+
+
+test('event covers persist through headquarters and local edits and appear in safe list projections',()=>{
+ const f=setup(),d=f.domain;f.login();d.setDemoRole('hq');let event=d.getEvent('demo-event-0');event.coverImage='https://cdn.example.com/activity.jpg';d.saveEvent(event);let card=d.getEventSquare({scope:'national'}).available.find(e=>e.id===event.id);assert.equal(card.coverImage,event.coverImage);assert.equal(card.actualCount,0);assert.deepEqual(card.participantMarkers,[]);assert.equal(card.registrations,undefined);
+ const withoutCover={...d.getEvent(event.id)};delete withoutCover.coverImage;d.saveEvent(withoutCover);assert.equal(d.getEvent(event.id).coverImage,event.coverImage);
+ assert.throws(()=>d.saveEvent({...event,coverImage:'javascript:alert(1)'}),/封面/);assert.equal(d.getEvent(event.id).coverImage,event.coverImage);
+ d.enrollEvent(event.id,{name:'小满'});card=d.getEventSquare({scope:'national'}).participated[0];assert.equal(card.actualCount,1);assert.equal(card.participantMarkers.length,1);
+ d.setDemoRole('operator');d.saveEvent({...d.getEvent(event.id),coverImage:'wxfile://usr/event-cover.jpg'});assert.equal(d.getEvent(event.id).coverImage,'wxfile://usr/event-cover.jpg');
+});

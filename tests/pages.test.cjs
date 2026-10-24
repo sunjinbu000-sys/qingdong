@@ -843,3 +843,10 @@ test("own forum detail supports gallery sizing publication time and confirmed ow
   p.data.post.mine=false;modal=null;p.deleteOwnPost();assert.equal(modal,null);
  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+
+test("event editor preserves a cover on picker cancellation and persists new covers separately from health images",async()=>{
+ const oldWx={...wx};try{const p=loadPage("event-editor");p.setData({"form.coverImage":"https://cdn.example.com/old.jpg"});wx.chooseMedia=o=>o.fail({errMsg:"chooseMedia:fail cancel"});await p.chooseCover();assert.equal(p.data.form.coverImage,"https://cdn.example.com/old.jpg");
+ wx.env={USER_DATA_PATH:"wxfile://usr"};let target="";wx.chooseMedia=o=>o.success({tempFiles:[{tempFilePath:"tmp/image.jpg",size:1024}]});wx.getFileSystemManager=()=>({copyFile:o=>{target=o.destPath;o.success();}});await p.chooseCover();assert.match(target,/wxfile:\/\/usr\/qingdong-event-/);assert.equal(p.data.form.coverImage,target);p.removeCover();assert.equal(p.data.form.coverImage,"");
+ }finally{Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});
