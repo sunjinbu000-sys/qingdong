@@ -1,1 +1,6 @@
-{"navigationBarTitleText": "AI模拟服务配置"}
+{
+  "navigationBarTitleText": "AI模拟服务配置",
+  "navigationBarBackgroundColor": "#F1F4F8",
+  "backgroundColor": "#F1F4F8",
+  "navigationBarTextStyle": "black"
+}

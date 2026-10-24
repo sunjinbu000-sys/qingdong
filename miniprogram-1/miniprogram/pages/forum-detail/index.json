@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"帖子详情"}
+{
+  "navigationBarTitleText": "帖子详情",
+  "navigationBarBackgroundColor": "#EFF7F6",
+  "backgroundColor": "#EFF7F6",
+  "navigationBarTextStyle": "black"
+}

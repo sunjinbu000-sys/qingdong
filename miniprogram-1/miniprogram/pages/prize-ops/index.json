@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"榜单奖品与履约"}
+{
+  "navigationBarTitleText": "榜单奖品与履约",
+  "navigationBarBackgroundColor": "#F1F4F8",
+  "backgroundColor": "#F1F4F8",
+  "navigationBarTextStyle": "black"
+}

@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "拍照记餐",
-  "navigationBarBackgroundColor": "#f1ebff",
-  "backgroundColor": "#f8f6ff"
+  "navigationBarBackgroundColor": "#F1EDFA",
+  "backgroundColor": "#F1EDFA",
+  "navigationBarTextStyle": "black"
 }

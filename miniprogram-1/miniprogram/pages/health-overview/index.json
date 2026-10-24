@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "营养、日历与变化"
+  "navigationBarTitleText": "营养、日历与变化",
+  "navigationBarBackgroundColor": "#F0F7F2",
+  "backgroundColor": "#F0F7F2",
+  "navigationBarTextStyle": "black"
 }

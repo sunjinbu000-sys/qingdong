@@ -1,1 +1,6 @@
-{"navigationBarTitleText": "会员订单"}
+{
+  "navigationBarTitleText": "会员订单",
+  "navigationBarBackgroundColor": "#FBF6EC",
+  "backgroundColor": "#FBF6EC",
+  "navigationBarTextStyle": "black"
+}

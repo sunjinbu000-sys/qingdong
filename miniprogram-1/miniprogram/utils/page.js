@@ -1,5 +1,6 @@
 const service = require("../services/index");
 const { validDate } = require("./date");
+const { applyTheme } = require("./theme");
 let diaryDateIntent = null;
 function takeDiaryDate() {
   const date = diaryDateIntent;
@@ -69,6 +70,8 @@ function page(options) {
         return true;
       },
       async onShow() {
+        const themePages = getCurrentPages();
+        applyTheme(themePages.length && themePages[themePages.length - 1].route);
         await require("./startup-display").maybeShow();
         if (this.refresh) await this.refresh();
         const pages = getCurrentPages(),

@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"总部论坛审核"}
+{
+  "navigationBarTitleText": "总部论坛审核",
+  "navigationBarBackgroundColor": "#F1F4F8",
+  "backgroundColor": "#F1F4F8",
+  "navigationBarTextStyle": "black"
+}

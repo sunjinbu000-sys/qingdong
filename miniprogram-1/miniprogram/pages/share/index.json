@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "我的打卡分享海报"
+  "navigationBarTitleText": "我的打卡分享海报",
+  "navigationBarBackgroundColor": "#FCF2EB",
+  "backgroundColor": "#FCF2EB",
+  "navigationBarTextStyle": "black"
 }

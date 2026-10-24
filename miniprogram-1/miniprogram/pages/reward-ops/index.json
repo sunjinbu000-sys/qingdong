@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"活动奖励配置"}
+{
+  "navigationBarTitleText": "活动奖励配置",
+  "navigationBarBackgroundColor": "#F1F4F8",
+  "backgroundColor": "#F1F4F8",
+  "navigationBarTextStyle": "black"
+}

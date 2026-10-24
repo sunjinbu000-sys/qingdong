@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "平台运营管理"
+  "navigationBarTitleText": "平台运营管理",
+  "navigationBarBackgroundColor": "#F1F4F8",
+  "backgroundColor": "#F1F4F8",
+  "navigationBarTextStyle": "black"
 }

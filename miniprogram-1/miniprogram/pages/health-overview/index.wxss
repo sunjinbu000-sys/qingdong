@@ -7,3 +7,6 @@
 .overview-budget-line{font-size:22rpx;color:#8eac83;width:100%;line-height:1.7}.overview-data-note{font-size:20rpx;color:#acb9a3;line-height:1.7;width:100%}
 
 .overview-weight-meta{display:flex;justify-content:space-between;gap:10rpx;font-size:23rpx;color:#e59a58}
+
+/* Feature canvas matches native navigation. */
+page{background:#F0F7F2;background-image:none}

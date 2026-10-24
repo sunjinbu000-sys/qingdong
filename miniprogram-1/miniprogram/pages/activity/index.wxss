@@ -1,1 +1,4 @@
 .activity-hero .hero-title{font-size:39rpx;max-width:540rpx}.activity-hero .hero-bottom{gap:8rpx}.activity-hero .small-text{font-size:20rpx}.progress-number{font-family:Georgia,serif;font-size:85rpx;color:#1d6651;line-height:1.2}.reward-detail{background:#f7f3e8;border-color:#e9e2cf}.reward-title{font-size:29rpx;font-weight:600}.rule{display:flex;gap:22rpx;padding:22rpx 0;border-bottom:1rpx solid #e9eee3}.rule:last-child{border:0}.rule-num{font:30rpx Georgia;color:#96ad7d;padding-top:4rpx}.rules{padding-top:8rpx;padding-bottom:8rpx}
+
+/* Feature canvas matches native navigation. */
+page{background:#FAF5EA;background-image:none}

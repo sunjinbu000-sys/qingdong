@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"历史榜与奖励"}
+{
+  "navigationBarTitleText": "历史榜与奖励",
+  "navigationBarBackgroundColor": "#FAF5EA",
+  "backgroundColor": "#FAF5EA",
+  "navigationBarTextStyle": "black"
+}

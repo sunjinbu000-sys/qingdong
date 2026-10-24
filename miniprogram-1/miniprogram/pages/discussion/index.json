@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "需求讨论台"
+  "navigationBarTitleText": "需求讨论台",
+  "navigationBarBackgroundColor": "#F1F4F8",
+  "backgroundColor": "#F1F4F8",
+  "navigationBarTextStyle": "black"
 }

@@ -1,4 +1,4 @@
-<view class="detail-page {{post.mine?'own-post-detail':''}}">
+<view class="detail-page {{post.mine?'own-post-detail':''}} qd-theme qd-social">
 <view wx:if="{{error}}" class="detail-error">{{error}}<button bindtap="retry">重试</button></view>
 <block wx:if="{{post}}">
 <view class="detail-author"><image class="detail-avatar" src="/images/profile/avatar.png" data-user="{{post.userId}}" data-anonymous="{{post.anonymous}}" bindtap="commentAuthor"/><text class="detail-author-name" data-user="{{post.userId}}" data-anonymous="{{post.anonymous}}" bindtap="commentAuthor">{{post.author}}</text><button wx:if="{{!post.anonymous && !post.mine && post.status==='approved'}}" class="detail-follow" bindtap="follow" disabled="{{busy}}">{{post.following?'已关注':'关注'}}</button><button wx:if="{{post.status==='approved'}}" class="detail-share" open-type="share">分享</button><button class="detail-more" bindtap="more">⋯</button></view>

@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "挑战详情"
+  "navigationBarTitleText": "挑战详情",
+  "navigationBarBackgroundColor": "#FAF5EA",
+  "backgroundColor": "#FAF5EA",
+  "navigationBarTextStyle": "black"
 }

@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"体重趋势"}
+{
+  "navigationBarTitleText": "体重趋势",
+  "navigationBarBackgroundColor": "#F0F5FA",
+  "backgroundColor": "#F0F5FA",
+  "navigationBarTextStyle": "black"
+}

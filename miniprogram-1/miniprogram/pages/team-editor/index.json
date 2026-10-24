@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"筹建小队"}
+{
+  "navigationBarTitleText": "筹建小队",
+  "navigationBarBackgroundColor": "#EEF7F3",
+  "backgroundColor": "#EEF7F3",
+  "navigationBarTextStyle": "black"
+}

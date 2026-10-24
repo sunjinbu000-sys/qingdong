@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "一起轻动 · 挑战"
+  "navigationBarTitleText": "一起轻动 · 挑战",
+  "navigationBarBackgroundColor": "#FAF5EA",
+  "backgroundColor": "#FAF5EA",
+  "navigationBarTextStyle": "black"
 }

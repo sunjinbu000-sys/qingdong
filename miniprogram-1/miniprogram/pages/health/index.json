@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "健康日记"
+  "navigationBarTitleText": "健康日记",
+  "navigationBarBackgroundColor": "#F0F7F2",
+  "backgroundColor": "#F0F7F2",
+  "navigationBarTextStyle": "black"
 }

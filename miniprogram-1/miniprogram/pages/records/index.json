@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "记下这一刻"
+  "navigationBarTitleText": "记下这一刻",
+  "navigationBarBackgroundColor": "#F0F7F2",
+  "backgroundColor": "#F0F7F2",
+  "navigationBarTextStyle": "black"
 }

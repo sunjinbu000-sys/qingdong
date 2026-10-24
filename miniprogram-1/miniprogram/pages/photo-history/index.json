@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"拍照识餐历史"}
+{
+  "navigationBarTitleText": "拍照识餐历史",
+  "navigationBarBackgroundColor": "#F1EDFA",
+  "backgroundColor": "#F1EDFA",
+  "navigationBarTextStyle": "black"
+}

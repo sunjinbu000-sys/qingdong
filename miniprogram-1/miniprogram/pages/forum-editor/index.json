@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"分享生活"}
+{
+  "navigationBarTitleText": "分享生活",
+  "navigationBarBackgroundColor": "#EFF7F6",
+  "backgroundColor": "#EFF7F6",
+  "navigationBarTextStyle": "black"
+}

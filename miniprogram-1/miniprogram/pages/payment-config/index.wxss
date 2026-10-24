@@ -1,1 +1,3 @@
 .config-row{padding:24rpx 0;border-bottom:1rpx solid #edf0e8}.config-row input{background:#f4f6ef;padding:20rpx;border-radius:14rpx;margin-top:12rpx}.task-row{padding:20rpx 0}.day-nav{white-space:nowrap}.day-nav button{display:inline-block;margin-right:12rpx}.poster{width:600rpx;height:800rpx}.actions{display:flex;gap:16rpx;flex-wrap:wrap}
+/* Feature canvas matches native navigation. */
+page{background:#F1F4F8;background-image:none}

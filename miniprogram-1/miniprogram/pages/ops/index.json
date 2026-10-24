@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "身份与运营工作台"
+  "navigationBarTitleText": "身份与运营工作台",
+  "navigationBarBackgroundColor": "#F1F4F8",
+  "backgroundColor": "#F1F4F8",
+  "navigationBarTextStyle": "black"
 }

@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "轻动 · 让改变发生"
+  "navigationBarTitleText": "轻动 · 让改变发生",
+  "navigationBarBackgroundColor": "#F1EDFA",
+  "backgroundColor": "#F1EDFA",
+  "navigationBarTextStyle": "black"
 }

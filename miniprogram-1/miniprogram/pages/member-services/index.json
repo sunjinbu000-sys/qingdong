@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "会员补卡与提醒"
+  "navigationBarTitleText": "会员补卡与提醒",
+  "navigationBarBackgroundColor": "#FBF6EC",
+  "backgroundColor": "#FBF6EC",
+  "navigationBarTextStyle": "black"
 }

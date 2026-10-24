@@ -1,4 +1,4 @@
-<view class="page forum-page {{tab==='mine'?'forum-personal-page':''}}">
+<view class="page forum-page {{tab==='mine'?'forum-personal-page':''}} qd-theme qd-social">
   <view class="forum-header">
     <view wx:if="{{tab!=='mine'}}" class="eyebrow">SHARE A LITTLE EVERY DAY</view>
     <view wx:if="{{tab!=='mine'}}" class="forum-heading">生活里的轻动，和你一起。</view>

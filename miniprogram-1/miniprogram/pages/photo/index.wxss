@@ -14,3 +14,6 @@ page{color:#333958}.capture-page{padding:16rpx 18rpx 28rpx}.capture-heading{font
 .capture-meal-illustration{position:absolute;left:0;top:122rpx;width:100%;height:500rpx;opacity:.96}
 .camera-viewfinder{left:66rpx;right:66rpx;top:62rpx;bottom:110rpx;border-width:4rpx;border-radius:46rpx;background:#ffffff0b}
 .preview-hint{background:transparent;padding:28rpx 12rpx;color:#fff;font-size:23rpx}
+
+/* Feature canvas matches native navigation. */
+page{background:#F1EDFA;background-image:none}

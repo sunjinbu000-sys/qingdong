@@ -1,1 +1,6 @@
-{"navigationBarTitleText": "轻动计划"}
+{
+  "navigationBarTitleText": "轻动计划",
+  "navigationBarBackgroundColor": "#F1F7EB",
+  "backgroundColor": "#F1F7EB",
+  "navigationBarTextStyle": "black"
+}

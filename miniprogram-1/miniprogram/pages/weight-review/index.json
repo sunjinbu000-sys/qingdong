@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"体重人工复核"}
+{
+  "navigationBarTitleText": "体重人工复核",
+  "navigationBarBackgroundColor": "#F1F4F8",
+  "backgroundColor": "#F1F4F8",
+  "navigationBarTextStyle": "black"
+}

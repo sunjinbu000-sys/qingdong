@@ -1,1 +1,4 @@
 @import "../health/index.wxss";
+
+/* Feature canvas matches native navigation. */
+page{background:#F0F7F2;background-image:none}

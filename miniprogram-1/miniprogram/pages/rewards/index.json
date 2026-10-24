@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "我的奖励"
+  "navigationBarTitleText": "我的奖励",
+  "navigationBarBackgroundColor": "#FBF6EC",
+  "backgroundColor": "#FBF6EC",
+  "navigationBarTextStyle": "black"
 }

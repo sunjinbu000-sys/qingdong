@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "食物、食谱与运动"
+  "navigationBarTitleText": "食物、食谱与运动",
+  "navigationBarBackgroundColor": "#F0F7F2",
+  "backgroundColor": "#F0F7F2",
+  "navigationBarTextStyle": "black"
 }

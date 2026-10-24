@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "我的会员权益"
+  "navigationBarTitleText": "我的会员权益",
+  "navigationBarBackgroundColor": "#FBF6EC",
+  "backgroundColor": "#FBF6EC",
+  "navigationBarTextStyle": "black"
 }

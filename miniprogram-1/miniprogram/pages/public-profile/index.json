@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"轻友主页"}
+{
+  "navigationBarTitleText": "轻友主页",
+  "navigationBarBackgroundColor": "#EFF7F6",
+  "backgroundColor": "#EFF7F6",
+  "navigationBarTextStyle": "black"
+}

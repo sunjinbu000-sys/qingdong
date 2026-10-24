@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "活动与多档奖励"
+  "navigationBarTitleText": "活动与多档奖励",
+  "navigationBarBackgroundColor": "#FBF6EC",
+  "backgroundColor": "#FBF6EC",
+  "navigationBarTextStyle": "black"
 }

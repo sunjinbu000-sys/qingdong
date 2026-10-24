@@ -1,1 +1,4 @@
 
+
+/* Feature canvas matches native navigation. */
+page{background:#F1EDFA;background-image:none}

@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "隐私与数据"
+  "navigationBarTitleText": "隐私与数据",
+  "navigationBarBackgroundColor": "#F5F0F8",
+  "backgroundColor": "#F5F0F8",
+  "navigationBarTextStyle": "black"
 }

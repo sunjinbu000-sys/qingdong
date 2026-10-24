@@ -67,15 +67,15 @@
   ],
   "window": {
     "navigationBarTitleText": "轻动",
-    "navigationBarBackgroundColor": "#EAE4F9",
+    "navigationBarBackgroundColor": "#F1EDFA",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F8F5FC",
+    "backgroundColor": "#F1EDFA",
     "backgroundTextStyle": "dark"
   },
   "tabBar": {
-    "color": "#899388",
-    "selectedColor": "#1d6651",
-    "backgroundColor": "#F3EEFB",
+    "color": "#747C8A",
+    "selectedColor": "#7560BA",
+    "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
       {

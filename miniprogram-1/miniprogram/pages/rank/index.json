@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"月度公开榜"}
+{
+  "navigationBarTitleText": "月度公开榜",
+  "navigationBarBackgroundColor": "#FAF5EA",
+  "backgroundColor": "#FAF5EA",
+  "navigationBarTextStyle": "black"
+}

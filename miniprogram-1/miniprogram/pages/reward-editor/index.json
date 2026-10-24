@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"多档奖励编辑"}
+{
+  "navigationBarTitleText": "多档奖励编辑",
+  "navigationBarBackgroundColor": "#F1F4F8",
+  "backgroundColor": "#F1F4F8",
+  "navigationBarTextStyle": "black"
+}

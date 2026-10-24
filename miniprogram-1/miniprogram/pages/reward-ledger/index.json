@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"奖励账本与履约"}
+{
+  "navigationBarTitleText": "奖励账本与履约",
+  "navigationBarBackgroundColor": "#FBF6EC",
+  "backgroundColor": "#FBF6EC",
+  "navigationBarTextStyle": "black"
+}

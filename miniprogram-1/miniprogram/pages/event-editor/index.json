@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"活动配置"}
+{
+  "navigationBarTitleText": "活动配置",
+  "navigationBarBackgroundColor": "#FCF2EB",
+  "backgroundColor": "#FCF2EB",
+  "navigationBarTextStyle": "black"
+}

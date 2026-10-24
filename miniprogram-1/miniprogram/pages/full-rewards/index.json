@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "全部奖励记录"
+  "navigationBarTitleText": "全部奖励记录",
+  "navigationBarBackgroundColor": "#FBF6EC",
+  "backgroundColor": "#FBF6EC",
+  "navigationBarTextStyle": "black"
 }

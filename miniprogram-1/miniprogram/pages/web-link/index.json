@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "展示位网页链接"
+  "navigationBarTitleText": "展示位网页链接",
+  "navigationBarBackgroundColor": "#F1EDFA",
+  "backgroundColor": "#F1EDFA",
+  "navigationBarTextStyle": "black"
 }

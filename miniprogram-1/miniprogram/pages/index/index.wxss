@@ -65,3 +65,6 @@
 
 /* Homepage club banner uses the supplied soft apricot swatch. */
 .page .banner-slide{background:#FFEBDE}
+
+/* Feature canvas matches native navigation. */
+page{background:#F1EDFA;background-image:none}

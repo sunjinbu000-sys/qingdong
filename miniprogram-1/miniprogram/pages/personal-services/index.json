@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"我的服务"}
+{
+  "navigationBarTitleText": "我的服务",
+  "navigationBarBackgroundColor": "#F5F0F8",
+  "backgroundColor": "#F5F0F8",
+  "navigationBarTextStyle": "black"
+}

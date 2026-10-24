@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"全局会员套餐池"}
+{
+  "navigationBarTitleText": "全局会员套餐池",
+  "navigationBarBackgroundColor": "#FBF6EC",
+  "backgroundColor": "#FBF6EC",
+  "navigationBarTextStyle": "black"
+}
