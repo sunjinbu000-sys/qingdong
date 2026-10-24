@@ -465,7 +465,7 @@ function createGrowthFullDomain(ctx) {
           createdAt: now(),
           start: today(),
           end: add(today(), days - 1),
-          request: { days, mealStyle, lossJin: goalAssessment.effectiveLossJin, requestedLossJin: goalAssessment.requestedLossJin, start: input.start, end: input.end },
+          request: { days, mealStyle, lossJin: goalAssessment.effectiveLossJin, requestedLossJin: goalAssessment.requestedLossJin, start: input.start, end: input.end,healthNote:String(input.healthNote||"").trim() },
           goalAssessment,
           profile: copy(p),
           profileBasis: {
@@ -632,7 +632,7 @@ function createGrowthFullDomain(ctx) {
             m.steps.join("；"),
             d.exercise.name,
             d.exercise.minutes,
-            p.notice,
+            p.notice+(p.request.healthNote?"；身体补充："+p.request.healthNote:""),
           ]);
       return rows;
     },
@@ -668,7 +668,7 @@ function createGrowthFullDomain(ctx) {
       const s = read(),
         p = activePlan(s, planId);
       return (
-        p.notice +
+        p.notice +(p.request.healthNote?"\n身体补充："+p.request.healthNote:"")+
         "\n" +
         planDays(p)
           .map(

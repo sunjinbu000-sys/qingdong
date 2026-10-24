@@ -548,3 +548,10 @@ test("unknown meal styles are rejected before charging and wheat restrictions co
   const names = p.days.flatMap(d => d.meals.flatMap(m => m.ingredients.map(x => x.name))).join(" ");
   assert(!/麦|面条|面包|馒头/.test(names));
 });
+
+
+test("plan body supplement is validated saved exported and switches activity to review mode",()=>{
+ const f=fixture(),a=f.api;const input={days:7,lossJin:0,start:"18:00",end:"18:30",healthNote:"膝盖不适，活动需要留意"};
+ const before=a.getRecognitionAccess().remaining;assert.throws(()=>a.generateAIPlan({...input,healthNote:"字".repeat(301)}),/300/);assert.equal(a.getRecognitionAccess().remaining,before);
+ assert.equal(a.assessPlanGoal(input).needsReview,true);const p=a.generateAIPlan(input);assert.equal(p.request.healthNote,input.healthNote);assert.equal(p.mode,"review");assert.equal(p.request.lossJin,0);assert.equal(p.days[0].exercise.minutes,0);assert.match(a.exportAIPlan(p.id),/膝盖不适/);assert.ok(a.getAIPlanExportRows(p.id).slice(1).every(row=>row[8].includes(input.healthNote)));
+});

@@ -879,3 +879,10 @@ test("nutrition dashboard synchronizes selected dates exercise and real weight c
  p.setData({date:"2026-01-01"});await p.refresh();assert.equal(p.data.overview.exerciseMinutes,0);assert.equal(p.data.overview.weightScenes[0].kg,70);assert.equal(p.data.miniPoints.length,1);assert.ok(p.data.curve.every(d=>d.date<="2026-01-01"));assert.equal(p.data.weightDelta,"—");
  }finally{saved=previous;}
 });
+
+
+test("plan layout presets preserve profile restrictions and day controls remain in bounds",()=>{
+ const oldWx={...wx};try{wx.showToast=()=>{};wx.pageScrollTo=()=>{};const p=loadPage("ai-plan");p.setData({profile:{restrictions:["牛奶"]},restrictions:"牛奶",today:"2026-10-24"});p.updateRestrictionChips();p.toggleRestriction({currentTarget:{dataset:{value:"牛奶"}}});assert.equal(p.data.restrictions,"牛奶");p.toggleRestriction({currentTarget:{dataset:{value:"花生"}}});assert.equal(p.data.restrictions,"牛奶、花生");p.chooseActivity({currentTarget:{dataset:{id:"morning"}}});assert.equal(p.data.start,"06:30");assert.equal(p.data.end,"07:00");
+ p.showPlan({id:"example",days:[{date:"2026-10-23",meals:[]},{date:"2026-10-24",meals:[]}]});p.relativeDay({currentTarget:{dataset:{offset:-1}}});assert.equal(p.data.selected,0);p.todayDay();assert.equal(p.data.selected,1);assert.equal(p.data.planHasToday,true);p.relativeDay({currentTarget:{dataset:{offset:1}}});assert.equal(p.data.selected,1);
+ }finally{Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});

@@ -1,4 +1,5 @@
 function assessPlanGoal(profile, input, config) {
+  if (input.healthNote !== undefined && (typeof input.healthNote !== "string" || input.healthNote.length > 300)) throw Error("身体状况补充最多300字");
   const days = Number(input.days === undefined ? (profile.goalDays || 7) : input.days);
   const requestedLossJin = Number(input.lossJin || 0);
   if (!Number.isInteger(days) || days < 1 || days > Math.min(config.maxDays || 1096, 1096)) throw Error("计划天数须为有效范围内的整数");
@@ -10,6 +11,7 @@ function assessPlanGoal(profile, input, config) {
   const weeklyKg = lossKg * 7 / days;
   const limit = Number(config.maxWeekly) > 0 ? Number(config.maxWeekly) : 0.5;
   const reasons = [];
+  if (String(input.healthNote || "").trim() && String(input.healthNote).trim() !== "无") reasons.push("已补充身体状况，活动安排需专业确认");
   if (profile.direction === "仅记录日常" || profile.direction === "保持体重，规律生活") reasons.push("档案方向为记录或维持");
   if (age < 18 || age >= 65 || profile.special || (profile.conditions && profile.conditions !== "无")) reasons.push("当前年龄或健康状态需要专业确认");
   if (weight / (height / 100) ** 2 < 24) reasons.push("当前档案不进入自动量化减重模式");
