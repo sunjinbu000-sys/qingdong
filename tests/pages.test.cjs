@@ -831,3 +831,15 @@ test("forum detail composer retains drafts, replies anonymously and refreshes co
   saved=undefined;const guest=loadPage("forum-detail");let destination="";wx.navigateTo=o=>destination=o.url;await guest.openComposer();assert.equal(guest.data.composerOpen,false);assert.equal(destination,"/pages/account/index");
  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+
+test("own forum detail supports gallery sizing publication time and confirmed owner deletion", async () => {
+ const previous=saved,oldWx={...wx};try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"自己的笔记",city:"温州"});
+  const post=await service.createForumPost({title:"今天的改变",text:"坚持记录每一天的生活",images:["/owned/1.png","/owned/2.png"],kind:"生活分享"});
+  const p=loadPage("forum-detail");p.onLoad({id:post.id});await p.refresh();assert.equal(p.data.post.mine,true);assert.match(p.data.publishedAt,/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+  p.imageLoaded({currentTarget:{dataset:{index:1}},detail:{width:750,height:900}});p.imageChanged({detail:{current:1}});assert.equal(p.data.imageIndex,1);assert.equal(p.data.galleryHeight,900);
+  let modal;wx.showModal=o=>modal=o;p.deleteOwnPost();assert.equal(modal.title,"删除笔记");modal.success({confirm:false});assert.equal((await service.getForumPost(post.id)).status,"pending");
+  p.data.post.mine=false;modal=null;p.deleteOwnPost();assert.equal(modal,null);
+ }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});

@@ -7,12 +7,22 @@ page({
   refresh() {
     return this.loadData(async () => {
       const snapshot = await service.getSnapshot();
+      const post = await service.getForumPost(this.data.id || "forum-demo-1");
+      const timestamp = typeof post.createdAt === "number" ? post.createdAt : Date.parse(post.createdAt);
+      const publishedAt = Number.isFinite(timestamp) ? new Date(timestamp + 8 * 3600000).toISOString().slice(0,19).replace("T"," ") : post.date;
       this.setData({
         signedIn: snapshot.signedIn, viewerId: snapshot.profile.userId || snapshot.userId || "",
-        post: await service.getForumPost(this.data.id || "forum-demo-1"),
+        post, publishedAt, imageIndex: Math.min(this.data.imageIndex || 0, Math.max(0,post.images.length-1)),
       });
     });
   },
+  imageChanged(e) { const imageIndex=Number(e.detail.current)||0; this.setData({imageIndex, galleryHeight:(this.imageHeights||[])[imageIndex]||840}); },
+  imageLoaded(e) { const d=e.detail;if(!d.width||!d.height)return;const index=Number(e.currentTarget.dataset.index)||0;this.imageHeights=this.imageHeights||[];this.imageHeights[index]=Math.max(300,Math.min(1100,750*d.height/d.width));if(index===(this.data.imageIndex||0))this.setData({galleryHeight:this.imageHeights[index]}); },
+  deleteOwnPost() {
+    if(!this.data.post.mine)return;
+    wx.showModal({title:"删除笔记",content:"删除后这篇笔记及其评论将不再展示，确认删除？",success:r=>{if(r.confirm)this.action(async()=>{await service.deleteForumPost(this.data.post.id);wx.navigateBack();});}});
+  },
+  reportPost() { wx.showModal({title:"投诉笔记",editable:true,placeholderText:"请填写投诉原因",success:r=>{if(r.confirm)this.action(async()=>{if(!(await this.requireAccount()))return;await service.reportForumPost(this.data.post.id,r.content);wx.showToast({title:"投诉已提交",icon:"success"});});}}); },
   async openComposer() {
     if (!(await this.requireAccount())) return;
     this.setData({ composerOpen: true, inputFocus: true });
