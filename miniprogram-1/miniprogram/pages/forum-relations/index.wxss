@@ -1,4 +1,4 @@
-page{background:#EFF7F6;background-image:none}
+page{background:#FFFFFF;background-image:none}
 .page.relations-page{padding:22rpx 24rpx 50rpx;min-height:100vh;background:#FFFFFF}
 .relations-search{display:flex;align-items:center;gap:16rpx;background:#F3F6F6;border:1rpx solid #E5EBEB;border-radius:45rpx;padding:0 22rpx}
 .relations-search-icon{width:32rpx;height:32rpx;flex-shrink:0}

@@ -2,7 +2,7 @@
 const families = {
   home:{name:"轻动首页",primary:"#7560BA",canvas:"#F1EDFA",soft:"#EAE3F8",edge:"#E0D8EF",ink:"#30354B",muted:"#707486"},
   diary:{name:"健康日记",primary:"#307F65",canvas:"#F0F7F2",soft:"#E2F1E7",edge:"#D6E7DC",ink:"#293E36",muted:"#5E7064"},
-  social:{name:"轻友论坛",primary:"#267F83",canvas:"#EFF7F6",soft:"#DEF0EE",edge:"#D3E6E4",ink:"#293F44",muted:"#5B6F72"},
+  social:{name:"轻友论坛",primary:"#267F83",canvas:"#FFFFFF",soft:"#DEF0EE",edge:"#D3E6E4",ink:"#293F44",muted:"#5B6F72"},
   challenge:{name:"轻动挑战",primary:"#986524",canvas:"#FAF5EA",soft:"#F6EAD2",edge:"#EBDDBF",ink:"#443B2E",muted:"#7C7261"},
   profile:{name:"我的轻动",primary:"#805D9F",canvas:"#F5F0F8",soft:"#EDE3F3",edge:"#E4D8EC",ink:"#3D354A",muted:"#7A7084"},
   team:{name:"我的小队",primary:"#287D73",canvas:"#EEF7F3",soft:"#DCF0E7",edge:"#CCE5DB",ink:"#2B413B",muted:"#5B7067"},

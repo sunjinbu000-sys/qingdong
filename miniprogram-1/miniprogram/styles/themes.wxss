@@ -1,6 +1,6 @@
 .qd-theme.qd-home{--qd-primary:#7560BA;--qd-canvas:#F1EDFA;--qd-soft:#EAE3F8;--qd-edge:#E0D8EF;--qd-ink:#30354B;--qd-muted:#707486}
 .qd-theme.qd-diary{--qd-primary:#307F65;--qd-canvas:#F0F7F2;--qd-soft:#E2F1E7;--qd-edge:#D6E7DC;--qd-ink:#293E36;--qd-muted:#5E7064}
-.qd-theme.qd-social{--qd-primary:#267F83;--qd-canvas:#EFF7F6;--qd-soft:#DEF0EE;--qd-edge:#D3E6E4;--qd-ink:#293F44;--qd-muted:#5B6F72}
+.qd-theme.qd-social{--qd-primary:#267F83;--qd-canvas:#FFFFFF;--qd-soft:#DEF0EE;--qd-edge:#D3E6E4;--qd-ink:#293F44;--qd-muted:#5B6F72}
 .qd-theme.qd-challenge{--qd-primary:#986524;--qd-canvas:#FAF5EA;--qd-soft:#F6EAD2;--qd-edge:#EBDDBF;--qd-ink:#443B2E;--qd-muted:#7C7261}
 .qd-theme.qd-profile{--qd-primary:#805D9F;--qd-canvas:#F5F0F8;--qd-soft:#EDE3F3;--qd-edge:#E4D8EC;--qd-ink:#3D354A;--qd-muted:#7A7084}
 .qd-theme.qd-team{--qd-primary:#287D73;--qd-canvas:#EEF7F3;--qd-soft:#DCF0E7;--qd-edge:#CCE5DB;--qd-ink:#2B413B;--qd-muted:#5B7067}
@@ -127,9 +127,9 @@
 .qd-theme.qd-social .post-follow{border-color:var(--qd-primary);color:var(--qd-primary)}
 .qd-theme.qd-social .post-topic,.qd-theme.qd-social .post-like.is-liked,.qd-theme.qd-social .manual-city-button{color:var(--qd-primary)}
 .qd-theme.qd-social .post-life-prompt{background:var(--qd-soft);border-color:var(--qd-edge);color:var(--qd-primary)}
-.qd-theme.qd-social .forum-compose-bar{background:#EFF7F6F5;border-color:var(--qd-edge)}
+.qd-theme.qd-social .forum-compose-bar{background:#FFFFFF;border-color:var(--qd-edge)}
 .qd-theme.qd-social .forum-compose-bar .forum-publish{background:var(--qd-primary);box-shadow:0 6rpx 20rpx #267F8318}
-.qd-theme.qd-social .forum-personal-hero{background:linear-gradient(125deg,#DEF0EE,#E5EDF5 75%,#F6EEE5)}
+.qd-theme.qd-social .forum-personal-hero{background:#FFFFFF}
 .qd-theme.qd-social .forum-personal-name,.qd-theme.qd-social .forum-personal-count,.qd-theme.qd-social .personal-note-title{color:var(--qd-ink)}
 .qd-theme.qd-social .forum-personal-id,.qd-theme.qd-social .forum-personal-bio,.qd-theme.qd-social .forum-personal-stats,.qd-theme.qd-social .personal-note-author{color:var(--qd-muted)}
 .qd-theme.qd-social .mine-tabs .mine-tab{background:#FFFFFF;color:var(--qd-muted)}
@@ -191,3 +191,5 @@
 
 .page.qd-theme .entry-profile{background:#EDE3F3!important;color:#805D9F!important;border-color:#E4D8EC!important}
 .page.qd-theme .entry-ops{background:#E5EBF2!important;color:#556B83!important;border-color:#D7DFE9!important}
+
+.page.qd-theme.qd-social{background:#FFFFFF}
