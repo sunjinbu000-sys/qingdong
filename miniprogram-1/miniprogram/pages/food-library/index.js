@@ -1,4 +1,4 @@
-const { foodIcon } = require("../../utils/food-icons");
+const { foodIcon, foodPhotoCredit } = require("../../utils/food-icons");
 const { page, service } = require("../../utils/page");
 page({
   data: {
@@ -41,6 +41,11 @@ page({
     const category=categories.some(x=>x.key===this.data.category)?this.data.category:"all";
     const filtered=list.filter(x=>(category==="all"||group(x)===category)&&(!this.data.favoritesOnly||x.favorite)&&(!q||x.name.includes(q)||group(x).includes(q)));
     this.setData({categories,category,totalCount:filtered.length,shown:filtered.slice(0,this.data.limit).map(x=>({...x,categoryLabel:group(x),kcalLabel:Number(x.kcal||0).toFixed(2),iconPath:foodIcon(x,this.data.tab),conflictsText:(x.conflicts||[]).join("、"),ingredientsText:(x.ingredients||[]).join("、")}))});
+  },
+  photoSource(e){
+    const item=(this.data.library[this.data.tab]||[]).find(x=>x.id===e.currentTarget.dataset.id),credit=item&&foodPhotoCredit(item,this.data.tab);if(!credit)return;
+    const content=credit.title+"\n摄影/作者："+credit.author+"\n许可："+credit.license+"\n"+credit.licenseUrl+"\n来源："+credit.source+"\n"+credit.changes;
+    wx.showModal({title:"照片来源与许可",content,confirmText:"复制来源",success:r=>{if(r.confirm)wx.setClipboardData({data:content});}});
   },
   chooseCategory(e){this.setData({category:e.currentTarget.dataset.key,activeId:"",limit:10});this.applyFilter();},
   toggleFavorites(){this.setData({favoritesOnly:!this.data.favoritesOnly,category:"all",activeId:"",limit:10});this.applyFilter();},
