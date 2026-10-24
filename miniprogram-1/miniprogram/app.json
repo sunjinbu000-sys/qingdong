@@ -66,7 +66,8 @@
     "pages/exercise/index",
     "pages/team-join/index",
     "pages/forum-relations/index",
-    "pages/team-task-members/index"
+    "pages/team-task-members/index",
+    "pages/daily-exercise/index"
   ],
   "window": {
     "navigationBarTitleText": "轻动",
