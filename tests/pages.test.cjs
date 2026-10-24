@@ -810,3 +810,11 @@ test("home order and weight hero support synchronized weight and goal settings",
   await trend.refresh();assert.equal(trend.data.current,70);assert.equal(trend.data.goalGap,"10.0");assert.equal(trend.data.difference,"-5.0 kg");
  }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+
+test("weight forecast uses the saved goal period and remains separate from actual records", () => {
+ const p=loadPage("weight-trend");p.today="2026-10-24";p.source={records:[{date:"2026-10-24",kg:70}],targetWeight:64,goalDays:6};p.renderTrend();
+ assert.equal(p.data.forecastReady,true);assert.equal(p.data.forecastLines.length,6);assert.equal(p.data.forecastEnd,"2026-10-30");assert.equal(p.data.points.length,1);assert.equal(p.data.lines.length,0);
+ assert.ok(p.data.forecastLines.every(l=>Number.isFinite(l.width) && l.angle >= 0));
+ p.source.goalDays=null;p.renderTrend();assert.equal(p.data.forecastReady,false);assert.equal(p.data.forecastLines.length,0);
+});

@@ -575,6 +575,7 @@ function createOperationsDomain(c) {
       return {
         records: s.records.filter(r => r.userId === u && r.type === "weight").sort((a, b) => a.date.localeCompare(b.date)),
         initialWeight: Number(f.profileExtra.initialWeight) || null,
+        goalDays: Number(f.profileExtra.goalDays) || null,
         targetWeight: Number(s.profile.targetWeight) || null,
         height: Number(s.profile.height) || null,
       };

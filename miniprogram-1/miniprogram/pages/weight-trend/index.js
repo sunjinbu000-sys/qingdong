@@ -27,16 +27,27 @@ page({
     const byDay = new Map();
     all.filter(r => r.date >= start && r.date <= this.today).forEach(r => byDay.set(r.date, r));
     const rows = [...byDay.values()];
-    const values = rows.map(r => r.kg);
+    const forecastReady = current !== null && source.targetWeight > 0 && source.goalDays > 0;
+    const end = forecastReady ? shiftDate(this.today, this.data.days - 1) : this.today;
+    const span = (this.data.days - 1) * (forecastReady ? 2 : 1);
+    const forecastRows = forecastReady ? Array.from({ length: this.data.days }, (_, i) => ({
+      date: shiftDate(this.today, i), kg: current + (source.targetWeight - current) * Math.min(i / source.goalDays, 1),
+    })) : [];
+    const values = rows.concat(forecastRows).map(r => r.kg);
     const min = values.length ? Math.floor(Math.min(...values) - 1) : 0;
     const max = values.length ? Math.ceil(Math.max(...values) + 1) : 1;
-    const points = rows.map(r => ({ date: r.date, kg: r.kg, x: ((Date.parse(r.date + "T00:00:00Z") - Date.parse(start + "T00:00:00Z")) / 86400000) / (this.data.days - 1) * 540, y: 260 - (r.kg - min) / (max - min) * 240 }));
+    const points = rows.map(r => ({ date: r.date, kg: r.kg, x: ((Date.parse(r.date + "T00:00:00Z") - Date.parse(start + "T00:00:00Z")) / 86400000) / span * 540, y: 260 - (r.kg - min) / (max - min) * 240 }));
     const lines = points.slice(1).map((p, i) => { const a = points[i], dx = p.x - a.x, dy = p.y - a.y; return { id: p.date, x: a.x, y: a.y, width: Math.sqrt(dx * dx + dy * dy), angle: Math.atan2(dy, dx) * 180 / Math.PI }; });
+    const forecastPoints = forecastRows.map(r => ({ ...r,
+      x: ((Date.parse(r.date + "T00:00:00Z") - Date.parse(start + "T00:00:00Z")) / 86400000) / span * 540,
+      y: 260 - (r.kg - min) / (max - min) * 240,
+    }));
+    const forecastLines = forecastPoints.slice(1).map((p, i) => { const a = forecastPoints[i], dx = p.x - a.x, dy = p.y - a.y; return { id: p.date, x: a.x, y: a.y, width: Math.sqrt(dx * dx + dy * dy), angle: Math.atan2(dy, dx) * 180 / Math.PI }; });
     this.setData({ current: current === null ? "—" : current, difference: current !== null && initial ? ((current - initial) > 0 ? "+" : "") + (current - initial).toFixed(1) + " kg" : "暂无对比",
       goalGap: current !== null && source.targetWeight ? Math.abs(current - source.targetWeight).toFixed(1) : "—",
       bmi: current !== null && source.height ? (current / (source.height / 100) ** 2).toFixed(1) : "—",
-      points, lines, ticks: Array.from({ length: 4 }, (_, i) => ({ value: (max - (max - min) * i / 3).toFixed(1), y: 20 + i * 80 })),
-      labels: Array.from({ length: 4 }, (_, i) => shiftDate(start, Math.round((this.data.days - 1) * i / 3)).slice(5).replace("-", ".")),
+      points, lines, forecastLines, forecastReady, forecastEnd: end, ticks: Array.from({ length: 4 }, (_, i) => ({ value: (max - (max - min) * i / 3).toFixed(1), y: 20 + i * 80 })),
+      labels: Array.from({ length: 4 }, (_, i) => shiftDate(start, Math.round(span * i / 3)).slice(5).replace("-", ".")),
       records: all.slice().reverse().slice(0, 20), lastDate: latest ? latest.date : "暂无记录",
     });
   },
