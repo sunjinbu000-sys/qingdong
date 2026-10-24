@@ -886,3 +886,10 @@ test("plan layout presets preserve profile restrictions and day controls remain 
  p.showPlan({id:"example",days:[{date:"2026-10-23",meals:[]},{date:"2026-10-24",meals:[]}]});p.relativeDay({currentTarget:{dataset:{offset:-1}}});assert.equal(p.data.selected,0);p.todayDay();assert.equal(p.data.selected,1);assert.equal(p.data.planHasToday,true);p.relativeDay({currentTarget:{dataset:{offset:1}}});assert.equal(p.data.selected,1);
  }finally{Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+
+test("challenge cards derive progress reward status and remaining slots from actual participation",async()=>{
+ const previous=saved;try{saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"挑战伙伴",city:"温州"});await service.enroll("first-step");await service.enroll("seven-days");await service.checkIn();const p=loadPage("challenges");await p.refresh();let first=p.data.activities.find(a=>a.id==="first-step"),week=p.data.activities.find(a=>a.id==="seven-days");assert.equal(first.cardTheme,"mint");assert.equal(first.progressPercent,100);assert.equal(first.cardAction,"待领取");assert.equal(first.remainingSlots,99);assert.equal(week.cardTheme,"blue");assert.equal(week.progress,1);assert.equal(week.cardAction,"继续完成");
+ p.filterChange({currentTarget:{dataset:{filter:"reward"}}});assert.deepEqual(p.data.shown.map(a=>a.id),["first-step"]);await service.claimReward("first-step");await p.refresh();assert.equal(p.data.shown.length,0);assert.equal(p.data.activities.find(a=>a.id==="first-step").cardAction,"已领取");
+ }finally{saved=previous;}
+});
