@@ -71,6 +71,98 @@ function fixture() {
     },
   };
 }
+test("repeated generation rotates actual meals and each meal style reaches the report", () => {
+  const f = fixture(), a = f.api;
+  const input = { days: 7, lossJin: 0, start: "18:00", end: "19:00" };
+  const first = a.generateAIPlan({ ...input, mealStyle: "home" });
+  const repeat = a.generateAIPlan({ ...input, mealStyle: "home" });
+  assert.notDeepEqual(repeat.days[0].meals.map(m => m.title), first.days[0].meals.map(m => m.title));
+  const third = a.generateAIPlan({ ...input, mealStyle: "fatloss" });
+  assert.ok(third.days.every(d => d.meals.every(m => m.style === "fatloss")));
+  assert.notDeepEqual(third.days[0].meals, repeat.days[0].meals);
+  assert.deepEqual(a.getAIPlans().find(p => p.id === first.id).days, first.days);
+});
+
+test("weight styles affect default daily activity and actual menu without changing goal limits", () => {
+  const results = ["gentle", "efficient", "shape"].map(weightStyle => {
+    const a = fixture().api;
+    return a.generateAIPlan({ days: 7, lossJin: 0, start: "18:00", end: "19:00", weightStyle });
+  });
+  assert.deepEqual(results.map(p => p.days[0].exercise.minutes), [15, 30, 20]);
+  assert.deepEqual(results.map(p => p.request.weightStyle), ["gentle", "efficient", "shape"]);
+  assert.equal(new Set(results.map(p => p.days[0].meals[0].title)).size, 3);
+  for (const p of results) assert.equal(p.goalAssessment.weeklyLimitKg, 0.5);
+});
+
+test("chosen and custom exercise flow through every day history text and Excel", () => {
+  for (const exercise of [{ activityId: "gentle-yoga", name: "伪造名称", minutes: 25 }, { activityId: "", name: "  公园漫步  ", minutes: 40 }]) {
+    const a = fixture().api;
+    const p = a.generateAIPlan({ days: 3, lossJin: 0, start: "20:00", end: "21:00", weightStyle: "shape", exercise });
+    const expected = exercise.activityId ? "瑜伽（一般）" : "公园漫步";
+    assert.equal(p.request.exercise.name, expected);
+    assert.ok(p.days.every(d => d.exercise.name === expected && d.exercise.minutes === exercise.minutes && d.exercise.time === "20:00" && d.exercise.end === "21:00"));
+    assert.equal(a.getAIPlans()[0].request.weightStyle, "shape");
+    assert.match(a.exportAIPlan(p.id), new RegExp(expected.replace(/[（）]/g, "[（）]")));
+    const rows = a.getAIPlanExportRows(p.id);
+    assert.ok(rows.slice(1).every(r => r[6] === expected && r[7] === exercise.minutes));
+    assert.match(a.exportAIPlan(p.id), /20:00.*21:00/);
+  }
+});
+
+test("exercise and weight-style validation is atomic and respects available time", () => {
+  const a = fixture().api, input = { days: 7, lossJin: 0, start: "18:00", end: "18:30" };
+  const before = a.getRecognitionAccess().remaining;
+  for (const extra of [{weightStyle:"other"}, {exercise:{activityId:"missing",minutes:20}}, {exercise:{name:"",minutes:20}}, {exercise:{name:"自填",minutes:31}}, {exercise:{name:"自填",minutes:0}}, {exercise:{name:"字".repeat(41),minutes:20}}, {exercise:"瑜伽"}]) {
+    assert.throws(() => a.generateAIPlan({...input,...extra}));
+    assert.equal(a.getRecognitionAccess().remaining,before);
+    assert.equal(a.getAIPlans().length,0);
+  }
+  const p = a.generateAIPlan({...input,start:"23:45",end:"00:15",exercise:{name:"睡前漫步",minutes:25}});
+  assert.equal(p.days[0].exercise.minutes,25);
+});
+
+test("health review retains preferred exercise but never assigns its requested quantity", () => {
+  const a = fixture().api;
+  const p = a.generateAIPlan({days:7,lossJin:0,start:"18:00",end:"19:00",exercise:{name:"瑜伽",minutes:35},healthNote:"膝关节不适"});
+  assert.equal(p.request.exercise.name,"瑜伽");
+  assert.equal(p.days[0].exercise.requestedName,"瑜伽");
+  assert.equal(p.days[0].exercise.requestedMinutes,35);
+  assert.equal(p.days[0].exercise.minutes,0);
+  assert.match(a.exportAIPlan(p.id), /偏好.*瑜伽.*35/);
+});
+
+test("temporary plan restrictions do not become permanent profile allergies", () => {
+  const a = fixture().api;
+  const input={days:7,lossJin:0,start:"18:00",end:"19:00"};
+  const first=a.generateAIPlan({...input,restrictions:"牛奶"});
+  assert.deepEqual(first.restrictions,["鸡蛋","牛奶"]);
+  assert.deepEqual(a.getPlanProfile().restrictions,["鸡蛋"]);
+  const next=a.generateAIPlan({...input,restrictions:""});
+  assert.deepEqual(next.restrictions,["鸡蛋"]);
+  assert.deepEqual(a.getAIPlans().find(p=>p.id===first.id).restrictions,["鸡蛋","牛奶"]);
+});
+
+test("space separated restrictions are applied as separate food exclusions", () => {
+  const a=fixture().api;
+  const p=a.generateAIPlan({days:7,lossJin:0,start:"18:00",end:"19:00",restrictions:"牛奶 小麦；海鲜"});
+  assert.deepEqual(p.restrictions,["鸡蛋","牛奶","小麦","海鲜"]);
+  const names=p.days.flatMap(d=>d.meals.flatMap(m=>m.ingredients.map(i=>i.name))).join(" ");
+  assert.ok(!/奶|酸奶|麦|面条|面包|馒头|鱼|虾|蟹/.test(names));
+});
+
+test("regenerating a meal uses the saved style budget restrictions and preference snapshot", () => {
+  const f=fixture(),a=f.api;
+  f.state().full.profileExtra.calorieGoal=2100;
+  const first=a.generateAIPlan({days:3,lossJin:0,start:"18:00",end:"19:00",mealStyle:"home",weightStyle:"efficient",exercise:{name:"普拉提",minutes:45},restrictions:"牛奶"});
+  f.state().full.profileExtra.calorieGoal=1800;
+  const next=a.regeneratePlanMeal({planId:first.id,date:first.start,slot:"breakfast"});
+  assert.notEqual(next.days[0].meals[0].title,first.days[0].meals[0].title);
+  assert.equal(next.days[0].meals[0].style,"home");
+  assert.equal(next.days[0].totalKcal,2100);
+  assert.deepEqual(next.request,first.request);
+  assert.deepEqual(next.days[0].exercise,first.days[0].exercise);
+  assert.ok(!JSON.stringify(next.days[0].meals).includes("牛奶"));
+});
 test("full cycle, diet restrictions, quota and editing", () => {
   const f = fixture(),
     a = f.api;

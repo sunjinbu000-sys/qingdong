@@ -1,5 +1,6 @@
 const { normalizeMealStyle, mealPreset } = require("./meal-styles");
 const { assessPlanGoal } = require("./plan-goal");
+const { normalizeWeightStyle, normalizeExercise, dailyExercise } = require("./plan-preferences");
 const { membershipView } = require("./membership");
 const add = (d, n) =>
   new Date(Date.parse(d + "T00:00:00Z") + n * 86400000)
@@ -292,7 +293,7 @@ function createGrowthFullDomain(ctx) {
     });
   }
   function restrictionList(v) {
-    return (Array.isArray(v) ? v : String(v || "").split(/[、,，;；\n]/))
+    return (Array.isArray(v) ? v : String(v || "").split(/[、,，;；\s]+/))
       .map((x) => String(x).trim())
       .filter(Boolean);
   }
@@ -412,6 +413,7 @@ function createGrowthFullDomain(ctx) {
           a = f.ai;
         const p = profile(s);
         const mealStyle = normalizeMealStyle(input.mealStyle);
+        const weightStyle = normalizeWeightStyle(input.weightStyle);
         const days = integer(
           input.days === undefined ? (p.goalDays || 7) : input.days,
           "计划天数",
@@ -433,6 +435,7 @@ function createGrowthFullDomain(ctx) {
           duration = (mins(input.end) - mins(input.start) + 1440) % 1440;
         if (duration < 5 || duration > 240)
           throw Error("活动时段须为5–240分钟");
+        const exercise = normalizeExercise(input.exercise, weightStyle, duration);
         const goalAssessment = assessPlanGoal(p, input, a.config);
         const review = goalAssessment.needsReview;
         if (goalAssessment.tooLow) throw Error(goalAssessment.message + "请调整目标体重，不能生成此减重目标。");
@@ -441,19 +444,18 @@ function createGrowthFullDomain(ctx) {
         const calorieBudget = !review && Number(p.calorieGoal) > 0 ? Number(p.calorieGoal) : a.config.minIntake;
         if (!review && Number(p.calorieGoal) > 0 && calorieBudget < a.config.minIntake) throw Error("档案热量目标低于当前计划配置下限，请先调整档案或使用记录模式");
         if (terms.join("").length > 300) throw Error("饮食限制最多300字");
+        const previous = a.plans.find(x => x.userId === userId);
+        const menuSeed = previous ? ((previous.request.menuSeed || 0) + 11) % 10000007 : 0;
+        const menuOffset = menuSeed + weightStyle.menuOffset;
         const result = Array.from({ length: days }, (_, i) => {
           const meals = ["breakfast", "lunch", "dinner"].map((slot, j) =>
-            meal(terms, i * 3 + j, slot, calorieBudget, mealStyle),
+            meal(terms, menuOffset + i * 3 + j, slot, calorieBudget, mealStyle),
           );
           return {
             date: add(today(), i),
             meals,
             totalKcal: meals.reduce((n, m) => n + m.kcal, 0),
-            exercise: {
-              name: review ? "日常活动须经专业人员确认" : "舒适步行与温和拉伸",
-              minutes: review ? 0 : Math.min(duration, 30),
-              time: input.start,
-            },
+            exercise: dailyExercise(exercise, input.start, input.end, review),
             encouragement: "把今天的三餐记好，慢慢养成习惯。",
           };
         });
@@ -465,7 +467,7 @@ function createGrowthFullDomain(ctx) {
           createdAt: now(),
           start: today(),
           end: add(today(), days - 1),
-          request: { days, mealStyle, lossJin: goalAssessment.effectiveLossJin, requestedLossJin: goalAssessment.requestedLossJin, start: input.start, end: input.end,healthNote:String(input.healthNote||"").trim() },
+          request: { days, mealStyle, weightStyle: weightStyle.id, weightStyleLabel: weightStyle.label, menuSeed, menuOffset, exercise, lossJin: goalAssessment.effectiveLossJin, requestedLossJin: goalAssessment.requestedLossJin, start: input.start, end: input.end,healthNote:String(input.healthNote||"").trim() },
           goalAssessment,
           profile: copy(p),
           profileBasis: {
@@ -493,9 +495,6 @@ function createGrowthFullDomain(ctx) {
         compactPlan(plan, result);
         a.plans.unshift(plan);
         a.plans = a.plans.slice(0, 4);
-        f.profileExtra = Object.assign({}, f.profileExtra, {
-          restrictions: terms,
-        });
         return planView(plan);
       });
     },
@@ -527,7 +526,7 @@ function createGrowthFullDomain(ctx) {
         const dayIndex = Math.round((Date.parse(input.date + "T00:00:00Z") - Date.parse(p.start + "T00:00:00Z")) / 86400000);
         const m = meal(
           p.restrictions,
-          dayIndex * 3 + index + next * 17,
+          ((p.request && p.request.menuOffset) || 0) + dayIndex * 3 + index + next * 17,
           input.slot,
           p.profileBasis && p.profileBasis.calorieApplied ? p.profileBasis.calorieGoal : init(s).ai.config.minIntake,
           (p.request && p.request.mealStyle) || "fatloss",
@@ -619,6 +618,9 @@ function createGrowthFullDomain(ctx) {
             "活动",
             "分钟",
             "提示",
+            "活动时段",
+            "减重风格",
+            "运动偏好（待确认时不执行）",
           ],
         ];
       for (const d of planDays(p))
@@ -633,6 +635,9 @@ function createGrowthFullDomain(ctx) {
             d.exercise.name,
             d.exercise.minutes,
             p.notice+(p.request.healthNote?"；身体补充："+p.request.healthNote:""),
+            d.exercise.time + (d.exercise.end ? "—" + d.exercise.end : ""),
+            p.request.weightStyleLabel || "未设置",
+            d.exercise.requestedName ? d.exercise.requestedName + " " + d.exercise.requestedMinutes + "分钟" : "",
           ]);
       return rows;
     },
@@ -669,6 +674,7 @@ function createGrowthFullDomain(ctx) {
         p = activePlan(s, planId);
       return (
         p.notice +(p.request.healthNote?"\n身体补充："+p.request.healthNote:"")+
+        (p.request.weightStyleLabel ? "\n减重风格：" + p.request.weightStyleLabel : "")+
         "\n" +
         planDays(p)
           .map(
@@ -695,7 +701,8 @@ function createGrowthFullDomain(ctx) {
               d.exercise.name +
               " " +
               d.exercise.minutes +
-              "分钟",
+              "分钟 · 时段 " + d.exercise.time + (d.exercise.end ? "—" + d.exercise.end : "") +
+              (d.exercise.needsReview ? "\n运动偏好：" + d.exercise.requestedName + " " + d.exercise.requestedMinutes + "分钟（待专业确认，未安排执行量）" : ""),
           )
           .join("\n\n")
       );

@@ -1,5 +1,6 @@
 const { exportWorkbook } = require("../../utils/export");
 const { page, service, navigate } = require("../../utils/page");
+const { weightStyles, exerciseOptions } = require("../../services/plan-preferences");
 page({
   data: {
     plans: [],
@@ -15,6 +16,10 @@ page({
     activeStep:1,healthNote:"",activityPreset:"evening",restrictionChips:[],
     activityPresets:[{id:"morning",label:"早晨",start:"06:30",end:"07:00"},{id:"noon",label:"午间",start:"12:30",end:"13:00"},{id:"evening",label:"傍晚",start:"18:00",end:"18:30"},{id:"night",label:"晚间",start:"20:00",end:"20:30"}],
     mealStyle: "fatloss", mealStyleLabel: "减脂餐", mealStyleOpen: false,
+    weightStyles, weightStyle: "gentle", weightStyleDescription: weightStyles[0].description,
+    exerciseId: "stroll", exerciseName: "散步（约4 km/h）", exerciseMinutes: 15,
+    exerciseMatches: [], exerciseSearchOpen: false,
+    generationError: "",
     mealStyles: [{ id: "fatloss", label: "减脂餐", description: "清淡做法，保留主食，搭配常见蛋白质与蔬果" }, { id: "home", label: "家庭日常", description: "日常易购食材、家常做法，兼顾品类与实用" }, { id: "mixed", label: "混合搭配", description: "家庭日常与减脂餐交替安排，丰富口味" }],
     goalAssessment: null,
     taskTypes: [
@@ -40,12 +45,29 @@ page({
         })),
         access,
         profile: extra,
-        days: extra.goalDays || 7,
-        lossJin: !recordOnly && extra.direction !== "保持体重，规律生活" && extra.targetWeight && extra.weight ? Math.max(0, Math.round((extra.weight - extra.targetWeight) * 20) / 10) : 0,
         recordOnly,
         today:(await service.getSnapshot()).date,
-        restrictions: (extra.restrictions || []).join("、"),
       });
+      if (!this.formInitialized) {
+        const request = plans.length ? plans[0].request : null;
+        const style = weightStyles.find(s => s.id === (request && request.weightStyle)) || weightStyles[0];
+        const mealOption = this.data.mealStyles.find(s => s.id === (request && request.mealStyle)) || this.data.mealStyles[0];
+        this.setData({
+          days: request ? request.days : extra.goalDays || 7,
+          lossJin: request ? request.requestedLossJin === undefined ? request.lossJin : request.requestedLossJin : !recordOnly && extra.direction !== "保持体重，规律生活" && extra.targetWeight && extra.weight ? Math.max(0, Math.round((extra.weight - extra.targetWeight) * 20) / 10) : 0,
+          restrictions: [...new Set([...(extra.restrictions || []), ...(plans.length ? plans[0].restrictions || [] : [])])].join("、"),
+          start: request ? request.start : this.data.start, end: request ? request.end : this.data.end,
+          activityPreset: request ? "custom" : this.data.activityPreset,
+          healthNote: request && request.healthNote || "",
+          weightStyle: style.id, weightStyleDescription: style.description,
+          mealStyle: mealOption.id, mealStyleLabel: mealOption.label,
+          exerciseId: request && request.exercise ? request.exercise.activityId : "stroll",
+          exerciseName: request && request.exercise ? request.exercise.name : "散步（约4 km/h）",
+          exerciseMinutes: request && request.exercise ? request.exercise.minutes : style.minutes,
+        });
+        this.exerciseMinutesEdited = !!(request && request.exercise);
+        this.formInitialized = true;
+      }
       this.updateRestrictionChips();
       if (plans.length) this.showPlan(plans[0]);
       await this.assessGoal();
@@ -56,11 +78,40 @@ page({
     if (["days", "lossJin","healthNote"].includes(e.currentTarget.dataset.key)) this.assessGoal();
     if(e.currentTarget.dataset.key==="restrictions")this.updateRestrictionChips();
     if(["start","end"].includes(e.currentTarget.dataset.key))this.setData({activityPreset:"custom"});
+    if(e.currentTarget.dataset.key==="exerciseMinutes")this.exerciseMinutesEdited=true;
+    if(e.currentTarget.dataset.key==="exerciseName") {
+      this.setData({exerciseId:"",exerciseSearchOpen:true});
+      this.searchExercises();
+    }
+    if(["start","end"].includes(e.currentTarget.dataset.key))this.updateDefaultMinutes();
+  },
+  selectWeightStyle(e) {
+    const style=weightStyles.find(s=>s.id===e.currentTarget.dataset.style);
+    if(!style)return;
+    this.setData({weightStyle:style.id,weightStyleDescription:style.description});
+    this.updateDefaultMinutes();
+  },
+  updateDefaultMinutes() {
+    if(this.exerciseMinutesEdited)return;
+    const mins=t=>Number(t.slice(0,2))*60+Number(t.slice(3));
+    const duration=(mins(this.data.end)-mins(this.data.start)+1440)%1440;
+    const style=weightStyles.find(s=>s.id===this.data.weightStyle)||weightStyles[0];
+    this.setData({exerciseMinutes:duration>=5?Math.min(style.minutes,duration):style.minutes});
+  },
+  searchExercises() {
+    const query=String(this.data.exerciseName||"").trim().toLowerCase().replace(/漫步|慢走/g,"散步");
+    this.setData({exerciseMatches:exerciseOptions.filter(a=>!query||(a.name+" "+a.category).toLowerCase().includes(query))});
+  },
+  openExerciseSearch() {this.setData({exerciseSearchOpen:true,exerciseMatches:exerciseOptions});},
+  closeExerciseSearch() {this.setData({exerciseSearchOpen:false});},
+  selectExercise(e) {
+    const activity=exerciseOptions.find(a=>a.id===e.currentTarget.dataset.id);
+    if(activity)this.setData({exerciseId:activity.id,exerciseName:activity.name,exerciseSearchOpen:false});
   },
   step(e){const activeStep=Number(e.currentTarget.dataset.step);this.setData({activeStep});wx.pageScrollTo({selector:["#plan-profile","#plan-goal","#plan-extra",this.data.plan?"#plan-report":"#plan-generate"][activeStep-1],duration:250});},
-  chooseActivity(e){const p=this.data.activityPresets.find(p=>p.id===e.currentTarget.dataset.id);if(p)this.setData({activityPreset:p.id,start:p.start,end:p.end});},
-  updateRestrictionChips(){const terms=String(this.data.restrictions||"").split(/[、,，\s]+/).filter(Boolean);this.setData({restrictionChips:["牛奶","鸡蛋","花生","海鲜"].map(value=>({value,selected:terms.includes(value)}))});},
-  toggleRestriction(e){const value=e.currentTarget.dataset.value;if((this.data.profile.restrictions||[]).includes(value)){wx.showToast({title:"档案忌口请到档案修改",icon:"none"});return;}const terms=String(this.data.restrictions||"").split(/[、,，\s]+/).filter(Boolean);this.setData({restrictions:(terms.includes(value)?terms.filter(t=>t!==value):terms.concat(value)).join("、")});this.updateRestrictionChips();},
+  chooseActivity(e){const p=this.data.activityPresets.find(p=>p.id===e.currentTarget.dataset.id);if(p){this.setData({activityPreset:p.id,start:p.start,end:p.end});this.updateDefaultMinutes();}},
+  updateRestrictionChips(){const terms=String(this.data.restrictions||"").split(/[、,，;；\s]+/).filter(Boolean);this.setData({restrictionChips:["牛奶","鸡蛋","花生","海鲜"].map(value=>({value,selected:terms.includes(value)}))});},
+  toggleRestriction(e){const value=e.currentTarget.dataset.value;if((this.data.profile.restrictions||[]).includes(value)){wx.showToast({title:"档案忌口请到档案修改",icon:"none"});return;}const terms=String(this.data.restrictions||"").split(/[、,，;；\s]+/).filter(Boolean);this.setData({restrictions:(terms.includes(value)?terms.filter(t=>t!==value):terms.concat(value)).join("、")});this.updateRestrictionChips();},
   relativeDay(e){if(!this.localPlan)return;const index=Math.max(0,Math.min(this.localPlan.days.length-1,this.data.selected+Number(e.currentTarget.dataset.offset)));this.selectDay({currentTarget:{dataset:{index}}});},
   todayDay(){if(!this.localPlan)return;const index=this.localPlan.days.findIndex(d=>d.date===this.data.today);this.selectDay({currentTarget:{dataset:{index:Math.max(0,index)}}});},
   toggleMealStyles() { this.setData({ mealStyleOpen: !this.data.mealStyleOpen }); },
@@ -92,7 +143,9 @@ page({
   },
   generate() {
     return this.action(async () => {
-      const input = { mealStyle: this.data.mealStyle, days: Number(this.data.days), lossJin: Number(this.data.lossJin), start: this.data.start, end: this.data.end, restrictions: this.data.restrictions,healthNote:this.data.healthNote };
+      this.setData({generationError:""});
+      try {
+      const input = { mealStyle: this.data.mealStyle, weightStyle: this.data.weightStyle, exercise: {activityId:this.data.exerciseId,name:this.data.exerciseName,minutes:Number(this.data.exerciseMinutes)}, days: Number(this.data.days), lossJin: Number(this.data.lossJin), start: this.data.start, end: this.data.end, restrictions: this.data.restrictions,healthNote:this.data.healthNote };
       const assessment = await service.assessPlanGoal(input);
       this.setData({ goalAssessment: assessment });
       if (assessment.tooLow) throw Error(assessment.message + "请先调整目标体重。");
@@ -116,6 +169,10 @@ page({
       });
       wx.showToast({ title: "模拟计划已生成", icon: "success" });
       this.setData({activeStep:4});wx.pageScrollTo({selector:"#plan-report",duration:250});
+      } catch (error) {
+        this.setData({generationError:error.message || "本次生成未完成，请重试"});
+        throw error;
+      }
     });
   },
   history(e) {

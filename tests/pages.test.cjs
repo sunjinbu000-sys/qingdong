@@ -496,6 +496,60 @@ test("meal style dropdown defaults to fat-loss and records the customer's choice
   assert.equal(p.data.mealStyleOpen, false);
 });
 
+test("plan exercise search supports aliases selection and custom names while preserving edited quantity", () => {
+  const p = loadPage("ai-plan");
+  p.selectWeightStyle({currentTarget:{dataset:{style:"shape"}}});
+  assert.equal(p.data.weightStyle,"shape");
+  assert.equal(p.data.exerciseMinutes,20);
+  p.input({currentTarget:{dataset:{key:"exerciseName"}},detail:{value:"漫步"}});
+  assert.ok(p.data.exerciseMatches.some(a=>a.id==="stroll"));
+  p.input({currentTarget:{dataset:{key:"exerciseName"}},detail:{value:"瑜伽"}});
+  p.selectExercise({currentTarget:{dataset:{id:"gentle-yoga"}}});
+  assert.equal(p.data.exerciseId,"gentle-yoga");
+  assert.equal(p.data.exerciseName,"瑜伽（一般）");
+  p.input({currentTarget:{dataset:{key:"exerciseMinutes"}},detail:{value:"25"}});
+  p.selectWeightStyle({currentTarget:{dataset:{style:"efficient"}}});
+  assert.equal(p.data.exerciseMinutes,"25");
+  p.input({currentTarget:{dataset:{key:"exerciseName"}},detail:{value:"院子慢走"}});
+  assert.equal(p.data.exerciseId,"");
+  assert.equal(p.data.exerciseName,"院子慢走");
+});
+
+test("plan page sends all preferences to generation and refresh keeps the customer's draft", async () => {
+  const previous=saved,oldWx={...wx};
+  try {
+    saved=undefined;wx.pageScrollTo=()=>{};
+    const service=require("../miniprogram-1/miniprogram/services/index");
+    await service.loginDemo();
+    await service.saveProfile({nickname:"计划伙伴",city:"温州",height:170});
+    await service.saveRecord({type:"weight",date:(await service.getSnapshot()).date,kg:75});
+    await service.saveExtendedProfile({age:30,sex:"男",direction:"培养习惯，温和减重",goalDays:7,restrictions:["鸡蛋"]});
+    const p=loadPage("ai-plan");await p.refresh();
+    p.selectMealStyle({currentTarget:{dataset:{style:"home"}}});
+    p.selectWeightStyle({currentTarget:{dataset:{style:"shape"}}});
+    for(const [key,value] of Object.entries({days:3,lossJin:0,start:"20:00",end:"21:00",exerciseName:"瑜伽",exerciseMinutes:35,restrictions:"牛奶",healthNote:"无"}))p.input({currentTarget:{dataset:{key}},detail:{value}});
+    await p.refresh();assert.equal(p.data.days,3);assert.equal(p.data.restrictions,"牛奶");
+    await p.generate();assert.equal(p.data.error,"");
+    assert.equal(p.data.plan.request.mealStyle,"home");assert.equal(p.data.plan.request.weightStyle,"shape");
+    assert.equal(p.data.day.exercise.name,"瑜伽");assert.equal(p.data.day.exercise.minutes,35);
+    assert.equal(p.data.day.exercise.time,"20:00");assert.equal(p.data.day.exercise.end,"21:00");
+    assert.equal(p.data.plan.request.healthNote,"无");assert.equal(p.data.plan.request.days,3);
+    assert.deepEqual(p.data.plan.restrictions,["鸡蛋","牛奶"]);
+    const first=p.data.day.meals.map(m=>m.title);
+    p.selectMealStyle({currentTarget:{dataset:{style:"fatloss"}}});await p.generate();
+    assert.ok(p.data.day.meals.every(m=>m.style==="fatloss"));assert.notDeepEqual(p.data.day.meals.map(m=>m.title),first);
+    const reopened=loadPage("ai-plan");await reopened.refresh();
+    assert.equal(reopened.data.exerciseName,"瑜伽");assert.equal(reopened.data.exerciseMinutes,35);
+    assert.equal(reopened.data.weightStyle,"shape");assert.equal(reopened.data.mealStyle,"fatloss");
+    p.input({currentTarget:{dataset:{key:"exerciseMinutes"}},detail:{value:90}});
+    const planId=p.data.plan.id,quota=(await service.getRecognitionAccess()).remaining;
+    await p.generate();
+    assert.equal(p.data.plan.id,planId);
+    assert.match(p.data.generationError,/超过活动时段/);
+    assert.equal((await service.getRecognitionAccess()).remaining,quota);
+  } finally {saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});
+
 test("photo selection never charges or recognizes before explicit confirmation", async () => {
   const previous = saved, oldWx = { ...wx }; saved = undefined;
   try {
