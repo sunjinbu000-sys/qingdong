@@ -818,3 +818,16 @@ test("weight forecast uses the saved goal period and remains separate from actua
  assert.ok(p.data.forecastLines.every(l=>Number.isFinite(l.width) && l.angle >= 0));
  p.source.goalDays=null;p.renderTrend();assert.equal(p.data.forecastReady,false);assert.equal(p.data.forecastLines.length,0);
 });
+
+
+test("forum detail composer retains drafts, replies anonymously and refreshes comments after sending", async () => {
+ const previous=saved,oldWx={...wx};try{
+  saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"评论用户",city:"温州"});
+  const p=loadPage("forum-detail");p.onLoad({id:"forum-demo-1"});await p.refresh();const count=p.data.post.comments.length;
+  await p.openComposer();assert.equal(p.data.composerOpen,true);assert.equal(p.data.inputFocus,true);p.keyboardChange({detail:{height:310}});assert.equal(p.data.keyboardHeight,310);
+  p.input({currentTarget:{dataset:{key:"comment"}},detail:{value:"一起坚持"}});p.addEmoji({currentTarget:{dataset:{emoji:"👍"}}});p.closeComposer();assert.equal(p.data.comment,"一起坚持👍");assert.equal(p.data.keyboardHeight,0);
+  await p.openComposer();await p.act({currentTarget:{dataset:{method:"commentForumPost"}}});assert.equal(p.data.composerOpen,false);assert.equal(p.data.comment,"");assert.equal(p.data.post.comments.length,count+1);const comment=p.data.post.comments.at(-1);assert.equal(comment.anonymous,true);
+  await p.reply({currentTarget:{dataset:{id:comment.id,author:comment.author}}});assert.equal(p.data.parentId,comment.id);p.setData({comment:"继续加油"});await p.act({currentTarget:{dataset:{method:"commentForumPost"}}});assert.equal(p.data.post.comments.at(-1).parentId,comment.id);
+  saved=undefined;const guest=loadPage("forum-detail");let destination="";wx.navigateTo=o=>destination=o.url;await guest.openComposer();assert.equal(guest.data.composerOpen,false);assert.equal(destination,"/pages/account/index");
+ }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});
