@@ -23,17 +23,21 @@ page({
     mealStyles: [{ id: "fatloss", label: "减脂餐", description: "清淡做法，保留主食，搭配常见蛋白质与蔬果" }, { id: "home", label: "家庭日常", description: "日常易购食材、家常做法，兼顾品类与实用" }, { id: "mixed", label: "混合搭配", description: "家庭日常与减脂餐交替安排，丰富口味" }],
     goalAssessment: null,
     taskTypes: [
-      { id: "signin", label: "签到" },
+      { id: "weight", label: "记录体重（每天一次）" },
       { id: "photo", label: "拍照记录" },
-      { id: "exercise", label: "活动完成" },
+      { id: "exercise", label: "运动记录" },
     ],
   },
+  onLoad(q={}) {this.historyId=q.historyId || "";this.historyDate=q.date || "";this.setData({historyMode:!!this.historyId});if(this.historyId && wx.setNavigationBarTitle)wx.setNavigationBarTitle({title:"历史记录"});},
+  onPageScroll(e) {this.scrollPosition=e.scrollTop;},
+  onHide() {this.returnPosition=this.scrollPosition || 0;},
   refresh() {
     return this.loadData(async () => {
       if (!(await this.requireAccount())) return;
       const plans = await service.getAIPlans(),
         access = await service.getRecognitionAccess();
       this.plans = plans;
+      this.setData({today:(await service.getSnapshot()).date});
       const extra = await service.getPlanProfile();
       const recordOnly = Number(extra.age) < 18 || Number(extra.age) >= 65 || extra.special || (extra.conditions && extra.conditions !== "无") || (extra.weight && extra.height && extra.weight / (extra.height / 100) ** 2 < 24) || extra.direction === "仅记录日常";
       this.setData({
@@ -42,11 +46,11 @@ page({
           start: p.start,
           request: p.request,
           closedOn: p.closedOn,
+          dates:p.days.filter(d=>d.date<=(this.data.today)).map(d=>d.date),
         })),
         access,
         profile: extra,
         recordOnly,
-        today:(await service.getSnapshot()).date,
       });
       if (!this.formInitialized) {
         const request = plans.length ? plans[0].request : null;
@@ -69,7 +73,16 @@ page({
         this.formInitialized = true;
       }
       this.updateRestrictionChips();
-      if (plans.length) this.showPlan(plans[0]);
+      if(this.historyId) {
+        const saved=plans.find(p=>p.id===this.historyId);
+        if(!saved) throw Error("历史计划不存在");
+        const index=saved.days.findIndex(d=>d.date===this.historyDate);
+        if(index<0 || this.historyDate>this.data.today) throw Error("历史日期无效");
+        this.setData({selected:index,historyDiary:await service.getDiary(this.historyDate)});this.showPlan(saved);
+      } else if(plans.length) {
+        const current=plans.find(p=>this.localPlan && p.id===this.localPlan.id) || plans[0];this.showPlan(current);
+      }
+      if(this.returnPosition!==undefined) {const top=this.returnPosition;delete this.returnPosition;if(wx.nextTick && wx.pageScrollTo)wx.nextTick(()=>wx.pageScrollTo({scrollTop:top,duration:0}));}
       await this.assessGoal();
     });
   },
@@ -131,9 +144,12 @@ page({
       });
     delete safe.days;
     this.setData({
+      planActive:!p.closedOn && p.start<=this.data.today && p.end>=this.data.today,
       plan: safe,planHasToday:p.days.some(d=>d.date===this.data.today),
       selected: index,
       day: p.days[index],
+      todayExercise:(p.days.find(d=>d.date===this.data.today)||p.days[index]).exercise,
+      taskRows:this.data.taskTypes.map(t=>({...t,done:(p.checks || []).some(c=>c.date===this.data.today&&c.type===t.id)})),
 
     });
   },
@@ -176,7 +192,8 @@ page({
     });
   },
   history(e) {
-    this.showPlan(this.plans[Number(e.currentTarget.dataset.index)]);
+    const p=this.plans[Number(e.currentTarget.dataset.index)];
+    if(p && p.days.some(d=>d.date===e.currentTarget.dataset.date))navigate("/pages/ai-plan/index?historyId="+encodeURIComponent(p.id)+"&date="+e.currentTarget.dataset.date);
   },
   regenerate(e) {
     this.action(async () => {
@@ -209,18 +226,13 @@ page({
       this.setData({ editSlot: "" });
     });
   },
+  confirmExecution() {return this.action(async()=>{this.showPlan(await service.confirmPlanExecution(this.data.plan.id));wx.showToast({title:"已确认执行",icon:"success"});});},
   task(e) {
-    this.action(async () => {
-      const type = e.currentTarget.dataset.type;
-      if (type === "photo") {
-        navigate("/pages/photo/index?planId=" + this.data.plan.id);
-        return;
-      }
-      this.showPlan(
-        await service.completePlanTask({ planId: this.data.plan.id, type }),
-      );
-      wx.showToast({ title: "今日任务已完成", icon: "success" });
-    });
+    if(this.data.historyMode || !this.data.planActive || !this.data.plan.executionConfirmed)return;
+    const type=e.currentTarget.dataset.type,date=this.data.today;
+    const done=this.data.taskRows.find(t=>t.id===type && t.done);
+    const url=type==="photo"?(done?"/pages/photo-history/index":"/pages/photo/index"):type==="weight"?"/pages/records/index?type=weight&date="+date+(done?"&edit=1":""):"/pages/exercise/index?date="+date;
+    navigate(url);
   },
   toggleTask(e) {
     this.action(async () => {

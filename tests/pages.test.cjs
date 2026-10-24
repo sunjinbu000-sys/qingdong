@@ -1014,3 +1014,16 @@ test("challenge cards derive progress reward status and remaining slots from act
  p.filterChange({currentTarget:{dataset:{filter:"reward"}}});assert.deepEqual(p.data.shown.map(a=>a.id),["first-step"]);await service.claimReward("first-step");await p.refresh();assert.equal(p.data.shown.length,0);assert.equal(p.data.activities.find(a=>a.id==="first-step").cardAction,"已领取");
  }finally{saved=previous;}
 });
+
+test("plan history opens a read-only dated page and return retains report selection and position",async()=>{
+ const previous=saved,oldWx={...wx};try {saved=undefined;let route,scroll;wx.navigateTo=o=>route=o.url;wx.pageScrollTo=o=>scroll=o.scrollTop;wx.nextTick=fn=>fn();
+ const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"计划伙伴",city:"温州",height:170});await service.saveExtendedProfile({age:30,initialWeight:75});const plan=await service.generateAIPlan({days:7,lossJin:0,start:"18:00",end:"19:00"});
+ const page=loadPage("ai-plan");page.onLoad({});await page.refresh();assert.deepEqual(page.data.taskTypes.map(t=>t.id),["weight","photo","exercise"]);page.setData({selected:2});page.showPlan(page.localPlan);page.onPageScroll({scrollTop:1650});page.onHide();page.history({currentTarget:{dataset:{index:0,date:plan.start}}});assert.match(route,/historyId=/);assert.match(route,new RegExp("date="+plan.start));
+ const history=loadPage("ai-plan");history.onLoad({historyId:plan.id,date:plan.start});await history.refresh();assert.equal(history.data.historyMode,true);assert.equal(history.data.day.date,plan.start);assert.equal(history.data.historyDiary.date,plan.start);
+ route="";history.task({currentTarget:{dataset:{type:"weight"}}});assert.equal(route,"");await page.refresh();assert.equal(page.data.selected,2);assert.equal(scroll,1650);
+ await page.confirmExecution();assert.equal(page.data.plan.executionConfirmed,true);page.task({currentTarget:{dataset:{type:"weight"}}});assert.match(route,/records\/index\?type=weight/);
+ await service.saveRecord({type:"exercise",date:plan.start,name:"瑜伽",minutes:20});await page.refresh();assert.equal(page.data.taskRows.find(t=>t.id==="exercise").done,true);
+ }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});
+
+test("naturally expired plans do not offer today's record task entry",()=>{const p=loadPage("ai-plan");p.setData({today:"2026-10-24"});p.showPlan({start:"2026-10-01",end:"2026-10-07",executionConfirmed:true,days:[{date:"2026-10-01",exercise:{}}],checks:[]});assert.equal(p.data.planActive,false);let route="";const previous=wx.navigateTo;wx.navigateTo=o=>route=o.url;try{p.task({currentTarget:{dataset:{type:"weight"}}});assert.equal(route,"");}finally{wx.navigateTo=previous;}});

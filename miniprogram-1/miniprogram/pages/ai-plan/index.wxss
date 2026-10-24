@@ -18,3 +18,5 @@
 
 /* Feature canvas matches native navigation. */
 page{background:#F1F7EB;background-image:none}
+
+.plan-history-group{margin-top:28rpx;padding-top:20rpx;border-top:1rpx solid #e3eddf}.plan-history-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16rpx;margin-top:18rpx}.plan-history-dates button{margin:0;width:100%;min-width:0;font-size:25rpx}.plan-history-heading{padding:24rpx 0}.plan-task-status{padding:8rpx 18rpx;border-radius:24rpx;background:#fff0df;color:#94602f;font-size:24rpx;flex-shrink:0}.plan-task-status.done,.plan-execution-confirmed{background:#e5f3e5;color:#34774b}.plan-execution-confirmed{padding:18rpx;margin-top:20rpx;border-radius:18rpx}.plan-linked-tasks .task-row{padding:26rpx 0;border-bottom:1rpx solid #e9eee5}.plan-linked-tasks .row{gap:16rpx}.plan-linked-tasks .row>text:first-child{min-width:0;flex:1}

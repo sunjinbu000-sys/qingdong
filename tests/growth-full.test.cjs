@@ -184,8 +184,9 @@ test("full cycle, diet restrictions, quota and editing", () => {
     kcal: 500,
   });
   assert.match(a.exportAIPlan(p.id), /燕麦粥/);
-  a.completePlanTask({ planId: p.id, type: "signin" });
-  assert.throws(() => a.completePlanTask({ planId: p.id, type: "signin" }));
+  a.confirmPlanExecution(p.id);
+  a.completePlanTask({ planId: p.id, type: "weight" });
+  assert.equal(a.getAIPlans()[0].checks.filter(c=>c.type==="weight").length,1);
   assert.throws(() => a.completePlanTask({ planId: p.id, type: "photo" }));
 });
 test("admin configs enforce permissions, safe mock and quota", () => {
@@ -344,6 +345,7 @@ test("root integration consumes membership, then free/ads and respects AI global
     photo.id,
   );
   assert.equal(a.getMembership().used, after);
+  a.confirmPlanExecution(p.id);
   a.completePlanTask({ planId: p.id, type: "photo", recordId: photo.recordId });
   a.editRecognizedMeal({
     recordId: photo.recordId,
@@ -646,4 +648,52 @@ test("plan body supplement is validated saved exported and switches activity to 
  const f=fixture(),a=f.api;const input={days:7,lossJin:0,start:"18:00",end:"18:30",healthNote:"膝盖不适，活动需要留意"};
  const before=a.getRecognitionAccess().remaining;assert.throws(()=>a.generateAIPlan({...input,healthNote:"字".repeat(301)}),/300/);assert.equal(a.getRecognitionAccess().remaining,before);
  assert.equal(a.assessPlanGoal(input).needsReview,true);const p=a.generateAIPlan(input);assert.equal(p.request.healthNote,input.healthNote);assert.equal(p.mode,"review");assert.equal(p.request.lossJin,0);assert.equal(p.days[0].exercise.minutes,0);assert.match(a.exportAIPlan(p.id),/膝盖不适/);assert.ok(a.getAIPlanExportRows(p.id).slice(1).every(row=>row[8].includes(input.healthNote)));
+});
+
+test("plan meals obey rolling 7-day uniqueness and 30-day frequency including replacements",()=>{
+ const {api:a}=fixture();const p=a.generateAIPlan({days:40,lossJin:0,start:"18:00",end:"19:00",mealStyle:"mixed"});
+ function verify(p){for(let i=0;i<p.days.length;i++){const week=p.days.slice(i,i+7).flatMap(d=>d.meals.map(m=>m.title));assert.equal(new Set(week).size,week.length);const counts={};for(const m of p.days.slice(i,i+30).flatMap(d=>d.meals))counts[m.title]=(counts[m.title]||0)+1;assert.ok(Object.values(counts).every(n=>n<=3));}}
+ verify(p);const replacement=a.regeneratePlanMeal({planId:p.id,date:p.start,slot:"breakfast"});verify(replacement);
+ assert.throws(()=>a.editPlanMeal({planId:p.id,date:p.days[1].date,slot:"breakfast",title:replacement.days[0].meals[0].title,kcal:500}),/重复/);
+});
+test("confirmed plan tasks derive from own saved records and retract when evidence is deleted",()=>{
+ const f=fixture(),a=f.api,p=a.generateAIPlan({days:7,lossJin:0,start:"18:00",end:"19:00"});
+ assert.equal(p.executionConfirmed,false);assert.throws(()=>a.completePlanTask({planId:p.id,type:"exercise"}),/确认/);
+ a.confirmPlanExecution(p.id);let state=f.state();state.records.push({id:"weight-today",userId:"me",type:"weight",date:p.start,kg:74},{id:"photo-today",userId:"me",type:"meal",date:p.start,imagePath:"wxfile://meal",source:"recognition"},{id:"sport-today",userId:"me",type:"exercise",date:p.start,name:"散步",minutes:30},{id:"other",userId:"other",type:"weight",date:p.start,kg:80});
+ let next=a.getAIPlans()[0];assert.deepEqual(next.checks.map(c=>c.type).sort(),["exercise","photo","weight"]);
+ state.records=state.records.filter(r=>r.type!=="weight" || r.userId!=="me");next=a.getAIPlans()[0];assert.equal(next.checks.some(c=>c.type==="weight"),false);
+ assert.throws(()=>a.completePlanTask({planId:p.id,type:"weight"}),/记录/);
+});
+
+test("canonical diary entries synchronize plan tasks across entry points, edits, deletes and Beijing days",()=>{
+ const {setup}=require("./helpers.cjs"),h=setup();h.login();const a=h.domain;
+ a.saveExtendedProfile({age:30,initialWeight:75});const date=a.getSnapshot().date,p=a.generateAIPlan({days:7,lossJin:0,start:"18:00",end:"19:00"});a.confirmPlanExecution(p.id);
+ const w=a.saveRecord({type:"weight",date,kg:74});assert.equal(a.getAIPlans()[0].checks.filter(c=>c.type==="weight").length,1);assert.equal(a.getPlanProfile().weight,74);
+ a.saveRecord({type:"weight",date,kg:73});assert.equal(a.getAIPlans()[0].checks.filter(c=>c.type==="weight").length,1);assert.equal(a.getWeightTrend().records.slice(-1)[0].kg,73);
+ const photo=a.recognizeMeal({requestId:"linked-photo",imagePath:"wxfile://food.jpg"});const exercise=a.recordExerciseSession({date,activityId:"stroll",minutes:25,weight:73});
+ assert.deepEqual(a.getAIPlans()[0].checks.map(c=>c.type).sort(),["exercise","photo","weight"]);
+ a.deleteRecord(photo.recordId);a.deleteRecord(exercise.id);assert.deepEqual(a.getAIPlans()[0].checks.map(c=>c.type),["weight"]);
+ h.setTime("2026-10-21T16:00:00Z");const nextDate=a.getSnapshot().date;assert.notEqual(nextDate,date);assert.equal(a.getAIPlans()[0].checks.some(c=>c.date===nextDate),false);
+ a.saveRecord({type:"exercise",date:nextDate,name:"瑜伽",minutes:20});assert.equal(a.getAIPlans()[0].checks.some(c=>c.date===nextDate&&c.type==="exercise"),true);
+ a.deleteRecord(w.id);
+});
+
+test("legacy repeats outside the candidate window do not permanently ban a meal",()=>{
+ const {setup}=require("./helpers.cjs"),h=setup();h.login();const a=h.domain;a.saveExtendedProfile({age:30,initialWeight:75});const old=a.generateAIPlan({days:7,lossJin:0,start:"18:00",end:"19:00"});
+ const state=h.store.read(),saved=state.full.ai.plans[0];for(const row of saved.compactDays.rows.slice(0,2))saved.compactDays.dict[row[1][0]].title="历史自定搭配";h.store.write(state);
+ h.setTime("2026-12-22T04:00:00Z");const current=a.generateAIPlan({days:7,lossJin:0,start:"18:00",end:"19:00"});
+ assert.doesNotThrow(()=>a.editPlanMeal({planId:current.id,date:current.start,slot:"breakfast",title:"历史自定搭配",kcal:500}));
+ assert.throws(()=>a.editPlanMeal({planId:old.id,date:old.start,slot:"breakfast",title:"另一个搭配",kcal:500}),/历史/);
+});
+
+test("meal repetition allows day seven and three monthly appearances, rejects fourth without charging",()=>{
+ const f=fixture(),a=f.api,p=a.generateAIPlan({days:31,lossJin:0,start:"18:00",end:"19:00"});
+ for(const index of [0,7,14])a.editPlanMeal({planId:p.id,date:p.days[index].date,slot:"breakfast",title:"月度测试搭配",kcal:500});
+ const credit=a.getRecognitionAccess().freeCredits;assert.throws(()=>a.editPlanMeal({planId:p.id,date:p.days[21].date,slot:"breakfast",title:"月度测试搭配",kcal:500}),/重复/);assert.equal(a.getRecognitionAccess().freeCredits,credit);
+ assert.doesNotThrow(()=>a.editPlanMeal({planId:p.id,date:p.days[30].date,slot:"breakfast",title:"月度测试搭配",kcal:500}));
+ assert.throws(()=>a.editPlanMeal({planId:p.id,date:p.days[6].date,slot:"lunch",title:"月度测试搭配",kcal:500}),/重复/);
+});
+
+test("current plan past meals are counted once when editing on day eight",()=>{
+ const {setup}=require("./helpers.cjs"),h=setup();h.login();const a=h.domain;a.saveExtendedProfile({age:30,initialWeight:75});const p=a.generateAIPlan({days:14,lossJin:0,start:"18:00",end:"19:00"});a.editPlanMeal({planId:p.id,date:p.start,slot:"breakfast",title:"每周测试搭配",kcal:500});h.setTime("2026-10-28T04:00:00Z");assert.doesNotThrow(()=>a.editPlanMeal({planId:p.id,date:p.days[7].date,slot:"breakfast",title:"每周测试搭配",kcal:500}));
 });

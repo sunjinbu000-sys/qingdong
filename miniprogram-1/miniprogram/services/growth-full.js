@@ -172,17 +172,61 @@ function createGrowthFullDomain(ctx) {
     delete p.days;
     return p;
   }
-  function planView(p) {
+  function planView(p, s) {
     const out = copy(p);
-    out.days = planDays(p);
+    out.days = copy(planDays(p));
     delete out.compactDays;
+    if (s) {
+      out.tasks.weight = out.tasks.weight || { enabled: true, time: "08:00", remind: false };
+      delete out.tasks.signin;
+      out.executionConfirmed = !!p.executionConfirmed;
+      out.checks = recordTaskChecks(s, p);
+    }
     return out;
+  }
+  function recordTaskChecks(s, p) {
+    if (!p.executionConfirmed) return [];
+    const rows = (s.records || []).filter(r => r.userId === p.userId && r.date >= p.start && r.date <= p.end && (!p.closedOn || r.date <= p.closedOn) && r.date <= today() && r.status !== "pending" && r.status !== "rejected");
+    const checks = new Map();
+    for (const r of rows) {
+      const type = r.type === "weight" && Number(r.kg) > 0 ? "weight" : r.type === "exercise" && Number(r.minutes) > 0 ? "exercise" : r.type === "meal" && r.imagePath ? "photo" : "";
+      if (type && (type === "weight" ? !p.tasks.weight || p.tasks.weight.enabled : p.tasks[type] && p.tasks[type].enabled)) checks.set(r.date + type, {date:r.date,type,recordId:r.id,createdAt:r.createdAt || 0});
+    }
+    return [...checks.values()];
+  }
+  const mealKey = m => String(m.title).replace(/\s+/g, "").split(/[＋+]/).sort().join("＋");
+  function allowedMeal(rows, date, candidate) {
+    const delta = (a,b) => (Date.parse(a+"T00:00:00Z")-Date.parse(b+"T00:00:00Z"))/86400000;
+    const matches = rows.filter(r => mealKey(r.meal) === mealKey(candidate)).map(r => r.date);
+    if(matches.some(d=>Math.abs(delta(d,date))<7)) return false;
+    const dates=matches.concat(date);
+    return dates.every(anchor=>{
+      const offset=delta(date,anchor);
+      return offset<0 || offset>=30 || dates.filter(d=>delta(d,anchor)>=0 && delta(d,anchor)<30).length<=3;
+    });
+  }
+  function mealRows(days) { return days.flatMap(d => d.meals.map(m => ({date:d.date,meal:m}))); }
+  function pastMeals(s, userId, excludeId) {
+    const dates = new Set(), rows=[];
+    for(const p of init(s).ai.plans.filter(p=>p.userId===userId && p.id!==excludeId)) for(const d of planDays(p)) {
+      if(d.date >= today() || dates.has(d.date) || (p.closedOn && d.date >= p.closedOn)) continue;
+      dates.add(d.date); rows.push(...mealRows([d]));
+    }
+    return rows;
+  }
+  function chooseMeal(terms,index,slot,budget,style,rows,date,exclude) {
+    for(let attempt=0;attempt<4096;attempt++) {
+      const candidate=meal(terms,index+attempt,slot,budget,style);
+      if((!exclude || mealKey(candidate)!==mealKey(exclude)) && allowedMeal(rows,date,candidate)) return candidate;
+    }
+    throw Error("当前忌口条件下餐谱不足以满足7天不重复、30天最多3次，请调整可用食材后重试");
   }
   function activePlan(s, pid) {
     const p = init(s).ai.plans.find(
       (p) => p.id === pid && p.userId === login(s),
     );
     if (!p) throw Error("计划不存在");
+    p.tasks.weight = p.tasks.weight || {enabled:true,time:"08:00",remind:false};
     return p;
   }
   function assertRecognition(s, type = "photo") {
@@ -298,17 +342,20 @@ function createGrowthFullDomain(ctx) {
       .filter(Boolean);
   }
   function meal(terms, index, slot, minIntake, style) {
-    index = index % 63;
+    index = Math.abs(index);
+    let divisor = 1;
     const preset = mealPreset(style, index, slot);
-    const pick = (pool, stride, offset) => {
+    const pick = (pool, offset) => {
       const safe = pool.filter(x => !conflicts(x, terms));
       if (!safe.length) throw Error("限制较多，现有常见食材不足，请先确认可用食材");
-      return safe[(index * stride + offset) % safe.length];
+      const choice = safe[(Math.floor(index / divisor) + offset) % safe.length];
+      divisor *= safe.length;
+      return choice;
     };
     const ingredients = [
-      { name: pick(preset.staples, 1, 0), grams: slot === "breakfast" ? 180 : 200 },
-      { name: pick(preset.proteins, 2, 1), grams: slot === "breakfast" ? 150 : 100 },
-      { name: pick(preset.vegetables, 3, 2), grams: slot === "breakfast" ? 150 : 200 },
+      { name: pick(preset.staples, 0), grams: slot === "breakfast" ? 180 : 200 },
+      { name: pick(preset.proteins, 1), grams: slot === "breakfast" ? 150 : 100 },
+      { name: pick(preset.vegetables, 2), grams: slot === "breakfast" ? 150 : 200 },
     ];
     const scale = Math.max(1500, minIntake) / 1500;
     ingredients.forEach(item => { item.grams = Math.round(item.grams * scale); });
@@ -404,7 +451,7 @@ function createGrowthFullDomain(ctx) {
       const s = read(),
         f = init(s);
       login(s);
-      return f.ai.plans.filter((p) => p.userId === login(s)).map(planView);
+      return f.ai.plans.filter((p) => p.userId === login(s)).map(p => planView(p, s));
     },
     generateAIPlan(input) {
       return change((s) => {
@@ -447,10 +494,13 @@ function createGrowthFullDomain(ctx) {
         const previous = a.plans.find(x => x.userId === userId);
         const menuSeed = previous ? ((previous.request.menuSeed || 0) + 11) % 10000007 : 0;
         const menuOffset = menuSeed + weightStyle.menuOffset;
+        const scheduled = pastMeals(s, userId);
         const result = Array.from({ length: days }, (_, i) => {
-          const meals = ["breakfast", "lunch", "dinner"].map((slot, j) =>
-            meal(terms, menuOffset + i * 3 + j, slot, calorieBudget, mealStyle),
-          );
+          const date=add(today(),i);
+          const meals = ["breakfast", "lunch", "dinner"].map((slot, j) => {
+            const m=chooseMeal(terms,menuOffset+i*3+j,slot,calorieBudget,mealStyle,scheduled,date);
+            scheduled.push({date,meal:m}); return m;
+          });
           return {
             date: add(today(), i),
             meals,
@@ -482,10 +532,11 @@ function createGrowthFullDomain(ctx) {
             "本地公式模拟，仅供记录参考；不是医疗或运动处方，不保证减重效果。",
           days: result,
           tasks: {
-            signin: { enabled: true, time: input.start, remind: false },
+            weight: { enabled: true, time: "08:00", remind: false },
             photo: { enabled: true, time: "12:00", remind: false },
             exercise: { enabled: true, time: input.end, remind: false },
           },
+          executionConfirmed: false,
           checks: [],
         };
         for (const old of a.plans.filter(
@@ -494,8 +545,8 @@ function createGrowthFullDomain(ctx) {
           old.closedOn = today();
         compactPlan(plan, result);
         a.plans.unshift(plan);
-        a.plans = a.plans.slice(0, 4);
-        return planView(plan);
+        // Keep saved history instead of silently discarding older plans.
+        return planView(plan, s);
       });
     },
     editPlanMeal(input) {
@@ -505,14 +556,17 @@ function createGrowthFullDomain(ctx) {
           d = days.find((d) => d.date === input.date),
           m = d && d.meals.find((m) => m.slot === input.slot);
         if (!m) throw Error("餐次不存在");
+        if(p.closedOn || input.date < today()) throw Error("历史餐谱只读，请调整当前或未来餐次");
         const title = text(input.title, "餐食名称", 100);
         if (conflicts(title, p.restrictions))
           throw Error("餐食命中忌口或过敏原");
         const kcal = positive(input.kcal, "热量", 10000);
+        const others = pastMeals(s,p.userId,p.id).concat(mealRows(days).filter(r=>r.date!==d.date || r.meal.slot!==input.slot));
+        if(!allowedMeal(others,d.date,{title})) throw Error("调整后餐谱重复：7天内不能重样，30天最多3次");
         Object.assign(m, { title, kcal, manual: true });
         d.totalKcal = d.meals.reduce((n, m) => n + m.kcal, 0);
         compactPlan(p, days);
-        return planView(p);
+        return planView(p, s);
       });
     },
     regeneratePlanMeal(input) {
@@ -522,29 +576,34 @@ function createGrowthFullDomain(ctx) {
           d = days.find((d) => d.date === input.date),
           index = d && d.meals.findIndex((m) => m.slot === input.slot);
         if (!d || index < 0) throw Error("餐次不存在");
+        if(p.closedOn || input.date < today()) throw Error("历史餐谱只读，请调整当前或未来餐次");
         const next = (d.meals[index].revision || 0) + 1;
         const dayIndex = Math.round((Date.parse(input.date + "T00:00:00Z") - Date.parse(p.start + "T00:00:00Z")) / 86400000);
-        const m = meal(
+        const m = chooseMeal(
           p.restrictions,
           ((p.request && p.request.menuOffset) || 0) + dayIndex * 3 + index + next * 17,
           input.slot,
           p.profileBasis && p.profileBasis.calorieApplied ? p.profileBasis.calorieGoal : init(s).ai.config.minIntake,
           (p.request && p.request.mealStyle) || "fatloss",
+          pastMeals(s,p.userId,p.id).concat(mealRows(days).filter(r=>r.date!==d.date || r.meal.slot!==input.slot)), d.date, d.meals[index],
         );
         consumeAI(s, id("regenerate"), "recipe");
         m.revision = next;
         d.meals[index] = m;
         d.totalKcal = d.meals.reduce((n, m) => n + m.kcal, 0);
         compactPlan(p, days);
-        return planView(p);
+        return planView(p, s);
       });
+    },
+    confirmPlanExecution(planId) {
+      return change(s=>{const p=activePlan(s,planId);if(p.closedOn || today()<p.start || today()>p.end) throw Error("仅可确认当前有效计划");p.executionConfirmed=true;p.confirmedAt=p.confirmedAt||now();return planView(p,s);});
     },
     configurePlanTasks(input) {
       return change((s) => {
         const p = activePlan(s, input.planId);
         if (p.closedOn || today() < p.start || today() > p.end)
           throw Error("仅可修改当前有效周期");
-        for (const type of ["signin", "photo", "exercise"]) {
+        for (const type of ["weight", "photo", "exercise"]) {
           const x = input.tasks[type];
           if (!x) continue;
           if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x.time))
@@ -555,7 +614,7 @@ function createGrowthFullDomain(ctx) {
             remind: !!x.remind && !!x.enabled,
           };
         }
-        return planView(p);
+        return planView(p, s);
       });
     },
     completePlanTask(input) {
@@ -570,38 +629,10 @@ function createGrowthFullDomain(ctx) {
           !p.tasks[type].enabled
         )
           throw Error("任务未启用或不在有效周期");
-        if (p.checks.some((c) => c.date === today() && c.type === type))
-          throw Error("今天已完成");
-        if (
-          type === "photo" &&
-          !(s.recognitions || []).some(
-            (r) =>
-              r.userId === login(s) &&
-              r.date === today() &&
-              r.recordId === input.recordId,
-          )
-        )
-          throw Error("请先成功识餐再完成任务");
-        p.checks.push({
-          date: today(),
-          type,
-          recordId: input.recordId || null,
-          createdAt: now(),
-        });
-        if (
-          type === "signin" &&
-          !(s.checkins || []).some((c) =>
-            typeof c === "string"
-              ? c === today()
-              : c.userId === login(s) && c.date === today(),
-          )
-        )
-          (s.checkins || (s.checkins = [])).push({
-            userId: login(s),
-            date: today(),
-            source: "ai-plan",
-          });
-        return planView(p);
+        if(!p.executionConfirmed) throw Error("请先确认执行计划");
+        const check=recordTaskChecks(s,p).find(c=>c.date===today()&&c.type===type);
+        if(!check) throw Error("请先保存今天对应的记录，任务会自动同步");
+        return planView(p, s);
       });
     },
     getAIPlanExportRows(planId) {
