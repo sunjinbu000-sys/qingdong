@@ -28,6 +28,11 @@ for (const file of files) {
     }
   }
   if (file.endsWith(".js")) {
+    const source = fs.readFileSync(file, "utf8");
+    check(
+      !/require\s*\(\s*["'][^"']+\.json["']\s*\)/.test(source),
+      file + ": mini-program require must load JavaScript modules, not JSON",
+    );
     const result = spawnSync(process.execPath, ["--check", file], {
       encoding: "utf8",
     });

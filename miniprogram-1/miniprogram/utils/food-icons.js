@@ -1,4 +1,4 @@
-const credits = require("./food-photo-credits.json");
+const credits = require("./food-photo-credits");
 const foods={rice:"rice",brownrice:"brown-rice",chicken:"chicken",egg:"egg",milk:"milk",tofu:"tofu",broccoli:"broccoli",tomato:"tomato",cucumber:"cucumber",banana:"banana",apple:"apple",oats:"oats",potato:"potato",oil:"oil",peanut:"peanut",shrimp:"shrimp",coffee:"coffee",latte:"latte",milktea:"milk-tea",milktea0:"milk-tea",lemontea:"lemon-tea",tea:"tea"};
 const recipes={chickenbowl:"chicken",tofushort:"tofu",oatbowl:"oat-bowl",eggbowl:"egg"};
 function foodIcon(item,tab){
