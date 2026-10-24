@@ -16,6 +16,7 @@
     "pages/config-editor/index",
     "pages/discussion/index",
     "pages/event-detail/index",
+    "pages/event-enroll/index",
     "pages/event-editor/index",
     "pages/events/index",
     "pages/explore/index",

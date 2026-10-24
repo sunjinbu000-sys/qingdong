@@ -552,6 +552,51 @@ function createChallengeFullDomain(c) {
       }
     return { ok: true, issued, archives: f.archives.length };
   }
+  function enrollEventInternal(k,values={},contactMode=false) {
+      return change((s) => {
+        const u = requireCity(s),
+          e = find(full(s).events, k),
+          at = new Date(now() + 8 * 3600000).toISOString().slice(0, 16);
+        if (
+          e.status !== "published" ||
+          (e.scope !== "all" && e.city !== city(s)) ||
+          at < e.regStart ||
+          at > e.regEnd ||
+          e.registrations.filter((r) => r.status === "registered").length >=
+            e.capacity ||
+          e.registrations.some(
+            (r) => r.userId === u && r.status === "registered",
+          )
+        )
+          fail("当前不可报名");
+        if(contactMode){
+          const name=String(values.name||"").trim(),phone=String(values.phone||"").trim();
+          if(!name || name.length>40)fail("请填写姓名（最多40字）");
+          if(!/^1[3-9]\d{9}$/.test(phone))fail("请填写正确的11位手机号");
+          values={name,phone};
+        }
+        const schema=contactMode?[{key:"name",label:"姓名",type:"text",required:true},{key:"phone",label:"手机号",type:"tel",required:true}]:(e.fields||[]);
+        for (const field of schema) {
+          const val = String(values[field.key] || "").trim();
+          if (field.required && !val) fail("请填写" + field.label);
+          if (
+            val.length > 300 ||
+            (val && field.type === "number" && !Number.isFinite(Number(val))) ||
+            (val && field.type === "tel" && !/^\+?[0-9 -]{6,20}$/.test(val))
+          )
+            fail(field.label + "格式无效");
+        }
+        e.registrations.push({
+          id: id("registration"),
+          userId: u,
+          values: clone(values),
+          schema: clone(schema),
+          status: "registered",
+          date: today(),
+          verified: [],
+        });
+      });
+  }
   const api = {
     listTeams(q = {}) {
       const s = read();
@@ -1096,44 +1141,8 @@ function createChallengeFullDomain(c) {
         log(s, "终止活动", k);
       });
     },
-    enrollEvent(k, values = {}) {
-      return change((s) => {
-        const u = requireCity(s),
-          e = find(full(s).events, k),
-          at = new Date(now() + 8 * 3600000).toISOString().slice(0, 16);
-        if (
-          e.status !== "published" ||
-          (e.scope !== "all" && e.city !== city(s)) ||
-          at < e.regStart ||
-          at > e.regEnd ||
-          e.registrations.filter((r) => r.status === "registered").length >=
-            e.capacity ||
-          e.registrations.some(
-            (r) => r.userId === u && r.status === "registered",
-          )
-        )
-          fail("当前不可报名");
-        for (const field of e.fields || []) {
-          const val = String(values[field.key] || "").trim();
-          if (field.required && !val) fail("请填写" + field.label);
-          if (
-            val.length > 300 ||
-            (val && field.type === "number" && !Number.isFinite(Number(val))) ||
-            (val && field.type === "tel" && !/^\+?[0-9 -]{6,20}$/.test(val))
-          )
-            fail(field.label + "格式无效");
-        }
-        e.registrations.push({
-          id: id("registration"),
-          userId: u,
-          values: clone(values),
-          schema: clone(e.fields || []),
-          status: "registered",
-          date: today(),
-          verified: [],
-        });
-      });
-    },
+    enrollEvent(k,values={}) {return enrollEventInternal(k,values);},
+    enrollEventWithContact(k,values={}) {return enrollEventInternal(k,values,true);},
     cancelEventEnrollment(k) {
       return change((s) => {
         const u = requireLogin(s),

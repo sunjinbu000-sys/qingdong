@@ -59,18 +59,7 @@ page({
         .split("\n")
         .map((x) => x.trim())
         .filter(Boolean);
-      v.fields = v.fields
-        .split("\n")
-        .filter((x) => x.trim())
-        .map((x, i) => {
-          const a = x.split("|");
-          return {
-            key: "f" + i,
-            label: a[0],
-            type: a[1] || "text",
-            required: a[2] === "必填",
-          };
-        });
+      v.fields = [{key:"name",label:"姓名",type:"text",required:true},{key:"phone",label:"手机号",type:"tel",required:true}];
       v.rewards = [];
       for (const [key, type] of [
         ["memberRewards", "member"],

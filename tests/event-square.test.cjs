@@ -22,3 +22,14 @@ test('event covers persist through headquarters and local edits and appear in sa
  d.enrollEvent(event.id,{name:'小满'});card=d.getEventSquare({scope:'national'}).participated[0];assert.equal(card.actualCount,1);assert.equal(card.participantMarkers.length,1);
  d.setDemoRole('operator');d.saveEvent({...d.getEvent(event.id),coverImage:'wxfile://usr/event-cover.jpg'});assert.equal(d.getEvent(event.id).coverImage,'wxfile://usr/event-cover.jpg');
 });
+
+
+test('contact enrollment requires name and valid mobile and keeps contacts private',()=>{
+ const f=setup(),d=f.domain;f.login();const id='demo-event-0';
+ assert.throws(()=>d.enrollEventWithContact(id,{phone:'13800000000'}),/姓名/);
+ assert.throws(()=>d.enrollEventWithContact(id,{name:'小满',phone:'123'}),/11位手机号/);
+ assert.equal(d.getEvent(id).actualCount,0);
+ d.enrollEventWithContact(id,{name:' 小满 ',phone:'13800000000'});let event=d.getEvent(id);assert.deepEqual(event.ownRegistration.values,{name:'小满',phone:'13800000000'});assert.equal(event.ownRegistration.schema.length,2);assert.equal(event.actualCount,1);
+ assert.throws(()=>d.enrollEventWithContact(id,{name:'小满',phone:'13800000000'}),/不可报名/);assert.equal(d.getEvent(id).actualCount,1);
+ const state=f.store.read();state.session.userId='other-person';f.store.write(state);event=d.getEvent(id);assert.equal(event.ownRegistration,null);assert.equal(event.registrations.length,0);assert.equal(JSON.stringify(d.getEventSquare()).includes('13800000000'),false);
+});
