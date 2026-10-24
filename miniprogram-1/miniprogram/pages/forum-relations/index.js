@@ -14,7 +14,16 @@ page({
     this.filterRows();
   });},
   search(e){this.setData({query:e.detail.value});this.filterRows();},
-  filterRows(){const q=String(this.data.query||"").trim().toLowerCase();this.setData({shown:this.data.rows.filter(row=>!q||(row.nickname+" "+(row.postTitle||"")).toLowerCase().includes(q))});},
+  filterRows(){
+    const q=String(this.data.query||"").trim().toLowerCase();let rows=this.data.rows;
+    if(this.data.type==="likes"){
+      const groups=new Map();
+      rows.forEach(row=>{if(!groups.has(row.userId))groups.set(row.userId,{...row,id:row.userId,likeCount:0,notes:[],searchText:row.nickname});const group=groups.get(row.userId);group.likeCount++;group.notes.push({id:row.id,postId:row.postId,title:row.postTitle});group.searchText+=" "+row.postTitle;});
+      rows=[...groups.values()];
+    }
+    this.setData({shown:rows.filter(row=>!q||(row.searchText||row.nickname+" "+(row.postTitle||"")).toLowerCase().includes(q))});
+  },
+  toggleNotes(e){this.setData({expandedUser:this.data.expandedUser===e.currentTarget.dataset.user?"":e.currentTarget.dataset.user});},
   follow(e){return this.action(async()=>{await service.followForumUser(e.currentTarget.dataset.user);await this.refresh();});},
   author(e){navigate("/pages/public-profile/index?userId="+encodeURIComponent(e.currentTarget.dataset.user));},
   post(e){navigate("/pages/forum-detail/index?id="+encodeURIComponent(e.currentTarget.dataset.id));},

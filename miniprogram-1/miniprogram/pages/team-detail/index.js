@@ -4,6 +4,7 @@ page({
   data: {memberFilter:"all",showAllMembers:false},
   onLoad(q) {
     this.key = q.id === "first-step" ? undefined : q.id;
+    this.initialTask=["signin","early","weight"].includes(q.task)?q.task:"";
   },
   refresh() {
     return this.loadData(async () => {
@@ -17,6 +18,7 @@ page({
       const days=Math.round((Date.parse(team.end)-Date.parse(team.start))/86400000)+1;
       this.setData({team,days,needed:Math.max(0,3-team.members.length),taskLabels:team.tasks.map(id=>({id,label:({signin:"每日签到",early:"早起打卡",weight:"体重记录"})[id]||id,hint:id==="early"?"北京时间每天 "+(team.earlyBefore||"08:00")+" 前完成，队长与队员相同":id==="signin"?"每日全天可签到（北京时间）":"先保存今日体重，再完成小队任务"}))});
       this.renderDashboard(snapshot.date);
+      if(this.initialTask&&team.isMember){const task=this.initialTask;this.initialTask="";const scroll=()=>{if(wx.pageScrollTo)wx.pageScrollTo({selector:"#task-"+task,duration:250});};if(wx.nextTick)wx.nextTick(scroll);else scroll();}
     });
   },
   renderDashboard(date){
@@ -26,14 +28,18 @@ page({
     const completed=(userId,d)=>eligible(userId,d)&&tasks.every(task=>checks.has(checkKey(userId,d,task)));
     const members=t.memberProfiles.map(m=>{const done=tasks.filter(task=>checks.has(checkKey(m.userId,date,task))).length;let streak=0,d=date>t.end?t.end:date;if(!completed(m.userId,d))d=shiftDate(d,-1);while(d>=t.start&&d<=t.end&&completed(m.userId,d)){streak++;d=shiftDate(d,-1);}return {...m,done,total:tasks.length,complete:active&&completed(m.userId,date),status:!active?(!t.launched&&!t.cancelled?"待开赛":date<t.start?"未开始":"已结束"):done===tasks.length?"今日完成":done?"部分完成":"未打卡",streak};});
     const completeCount=members.filter(m=>m.complete).length,percent=active&&members.length?Math.round(completeCount/members.length*100):0;
-    const my=members.find(m=>m.isMe),todayTasks=this.data.taskLabels.map(task=>({...task,done:!!my&&checks.has(checkKey(my.userId,date,task.id))}));
+    const my=members.find(m=>m.isMe),todayTasks=this.data.taskLabels.map(task=>{
+      const candidates=active?members.filter(m=>eligible(m.userId,date)):[],doneMembers=candidates.filter(m=>checks.has(checkKey(m.userId,date,task.id))),pendingMembers=candidates.filter(m=>!checks.has(checkKey(m.userId,date,task.id)));
+      return {...task,done:!!my&&checks.has(checkKey(my.userId,date,task.id)),doneMembers,pendingMembers,donePreview:doneMembers.slice(0,6),pendingPreview:pendingMembers.slice(0,6)};
+    });
     this.setData({dashboardMode:t.isMember,members,todayActive:active,todayTasks,completeCount,pendingCount:active?members.length-completeCount:0,todayPercent:percent,dayNumber:!t.launched?0:Math.min(this.data.days,Math.max(0,Math.floor((Date.parse(date)-Date.parse(t.start))/86400000)+1)),phase:t.cancelled?"已解散":!t.launched?"等待开赛":date<t.start?"等待开始":t.closed||date>t.end?"已结束":"挑战中",ringStyle:"background:conic-gradient(#ff943e "+percent+"%,#edf0ed 0)"});this.filterMembers();
   },
   filterMembers(){const members=this.data.members||[];const filtered=this.data.memberFilter==="pending"?members.filter(m=>this.data.todayActive&&!m.complete):members;this.setData({filteredCount:filtered.length,visibleMembers:this.data.showAllMembers?filtered:filtered.slice(0,8)});},
   chooseMemberFilter(e){this.setData({memberFilter:e.currentTarget.dataset.filter,showAllMembers:false});this.filterMembers();},
   toggleMembers(){this.setData({showAllMembers:!this.data.showAllMembers});this.filterMembers();},
   pendingMembers(){this.setData({memberFilter:"pending",showAllMembers:true});this.filterMembers();wx.pageScrollTo({selector:"#dashboard-members",duration:250});},
-  onShareAppMessage(){return {title:(this.data.team?this.data.team.name:"我的小队")+"：一起完成今天的小习惯",path:"/pages/team-detail/index?id="+encodeURIComponent(this.key||"")};},
+  taskMembers(e){const task=e.currentTarget.dataset.task,status=e.currentTarget.dataset.status||"pending";if(!this.data.taskLabels.some(t=>t.id===task))return;navigate("/pages/team-task-members/index?id="+encodeURIComponent(this.key)+"&task="+task+"&status="+status);},
+  onShareAppMessage(e){const task=e&&e.target&&e.target.dataset&&e.target.dataset.task,label=(this.data.taskLabels||[]).find(t=>t.id===task);return {title:(this.data.team?this.data.team.name:"我的小队")+"：一起完成"+(label?label.label:"今天的小习惯"),path:"/pages/team-detail/index?id="+encodeURIComponent(this.key||"")+(label?"&task="+task:"")};},
   rules(){this.setData({rulesOpen:true});},
   closeRules(){this.setData({rulesOpen:false});},
   preventMove(){},

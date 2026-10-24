@@ -1,0 +1,4 @@
+@import "../forum-relations/index.wxss";
+page{background:#EEF7F3;background-image:none}
+.member-task-done{font-size:24rpx;color:#287D73;flex-shrink:0}
+.relations-count>view{font-size:21rpx;color:#5B7067;margin-top:8rpx}

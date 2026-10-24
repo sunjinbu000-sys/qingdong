@@ -617,6 +617,15 @@ function createChallengeFullDomain(c) {
       const s = read();
       return teamView(s, find(full(s).teams, k));
     },
+    getTeamTaskMembers(k,task,status="pending") {
+      const s=read(),u=requireLogin(s),t=find(full(s).teams,k),date=today();
+      if(!t.members.includes(u)||t.cancelled)fail("仅本小队队员可以查看任务名单");
+      if(!t.tasks.includes(task)||!["pending","done"].includes(status))fail("任务或状态无效");
+      const active=!!t.launched&&!t.closed&&date>=t.start&&date<=t.end;
+      const done=new Set(t.checks.filter(x=>x.date===date&&x.task===task).map(x=>x.userId));
+      const rows=active?teamView(s,t).memberProfiles.filter(m=>inTeam(t,m.userId,date)&&(status==="done"?done.has(m.userId):!done.has(m.userId))).map(m=>({...m,id:m.userId,done:done.has(m.userId)})):[];
+      return {teamId:t.id,teamName:t.name,task,taskLabel:({signin:"每日签到",early:"早起打卡",weight:"体重记录"})[task],status,date,active,total:rows.length,rows};
+    },
     createTeam(v) {
       return change((s) => {
         if (typeof v.earlyBefore !== "string" || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v.earlyBefore) || v.earlyBefore === "00:00") fail("请设置有效的早起打卡截止时间（晚于00:00）");

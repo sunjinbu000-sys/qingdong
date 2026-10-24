@@ -89,6 +89,18 @@ test("legacy teams keep their existing tasks and 08:00 early cutoff",()=>{
   assert.deepEqual(a.getTeam(t.id).tasks,["signin","early"]);assert.equal(a.getTeam(t.id).earlyBefore,"08:00");
   x.clock("2026-10-20T23:59:59Z");a.checkTeamTask(t.id,"early");x.user("b");x.clock("2026-10-21T00:00:00Z");assert.throws(()=>a.checkTeamTask(t.id,"early"),/08:00/);
 });
+test("team task activity separates each task and protects member-only pending lists",()=>{
+ const x=fixture(),a=x.api,t=a.createTeam({name:"任务同行",max:3,method:"open",start:"2026-10-21",end:"2026-10-27",earlyBefore:"10:00"});
+ x.user("b");a.joinTeam(t.id);x.user("c");a.joinTeam(t.id);x.user("a");
+ assert.equal(a.getTeamTaskMembers(t.id,"early","pending").total,0);
+ a.launchTeam(t.id);a.checkTeamTask(t.id,"early");x.user("b");a.checkTeamTask(t.id,"signin");
+ const early=a.getTeamTaskMembers(t.id,"early","pending"),signin=a.getTeamTaskMembers(t.id,"signin","done");
+ assert.deepEqual(early.rows.map(r=>r.userId),["b","c"]);assert.deepEqual(signin.rows.map(r=>r.userId),["b"]);
+ assert.equal(a.getTeamTaskMembers(t.id,"weight","pending").total,3);
+ assert.equal(JSON.stringify(early).includes('"checks"'),false);assert.equal(JSON.stringify(early).includes('"kg"'),false);
+ assert.throws(()=>a.getTeamTaskMembers(t.id,"other","pending"));
+ x.user("outsider");assert.throws(()=>a.getTeamTaskMembers(t.id,"early","pending"),/队员/);
+});
 test("final V0.30 supports simultaneous teams with per-team review and member deduplication", () => {
   const x = fixture(),
     a = x.api;

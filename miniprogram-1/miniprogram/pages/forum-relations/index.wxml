@@ -4,11 +4,13 @@
   <template is="feedback" data="{{loading,error}}"/>
   <block wx:if="{{!loading && !error}}">
     <view class="relations-count">{{title}} · {{total}}{{type==='likes'?' 次':' 人'}}<text wx:if="{{query}}"> · 找到 {{shown.length}} 条</text></view>
+    <block wx:if="{{type==='likes'}}"><view wx:for="{{shown}}" wx:key="id" class="received-like-card"><view class="received-like-top"><view class="received-like-heart">♥</view><view class="received-like-copy"><view class="received-like-title">{{item.isMe?'你赞了自己的笔记':'Ta赞了你的笔记'}}</view><view class="received-like-name">{{item.nickname}}</view><button class="received-like-count" data-user="{{item.userId}}" bindtap="toggleNotes">共点赞 {{item.likeCount}} 次 ›</button></view><button wx:if="{{!item.isMe}}" class="return-like" data-user="{{item.userId}}" bindtap="author">去回赞Ta</button><button wx:else class="return-like" data-id="{{item.postId}}" bindtap="post">查看笔记</button></view><view wx:if="{{expandedUser===item.userId}}" class="received-like-notes"><button wx:for="{{item.notes}}" wx:for-item="note" wx:key="id" data-id="{{note.postId}}" bindtap="post">{{note.title}} ›</button></view></view></block><block wx:else>
     <view wx:for="{{shown}}" wx:key="id" class="relation-row">
       <image class="relation-avatar" src="/images/ui/community-user.svg" data-user="{{item.userId}}" bindtap="author"/>
       <view class="relation-main"><view class="relation-name" data-user="{{item.userId}}" bindtap="author">{{item.nickname}}{{item.isMe?'（我）':''}}</view><button wx:if="{{type==='likes'}}" class="relation-note" data-id="{{item.postId}}" bindtap="post">赞了你的笔记 · {{item.postTitle}} ›</button><view wx:elif="{{type==='followers'}}" class="relation-caption">{{item.following?'你们已互相关注':'关注了你'}}</view></view>
       <button wx:if="{{!item.isMe && item.canFollow}}" class="relation-follow {{item.following?'is-following':''}}" data-user="{{item.userId}}" bindtap="follow" disabled="{{busy}}">{{item.followLabel}}</button>
     </view>
+    </block>
     <view wx:if="{{!shown.length}}" class="relations-empty"><image src="/images/ui/community-user.svg"/><view>{{query?'没有找到匹配的记录':type==='following'?'还没有关注轻友':type==='followers'?'还没有粉丝':'还没有收到点赞'}}</view></view>
   </block>
 </view>

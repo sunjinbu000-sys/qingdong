@@ -1,0 +1,9 @@
+<import src="../../components/states.wxml"/>
+<view class="page relations-page qd-theme qd-team">
+  <view class="relations-search"><image class="relations-search-icon" src="/images/ui/search.svg"/><input value="{{query}}" bindinput="search" placeholder="搜索成员昵称" maxlength="60"/></view>
+  <template is="feedback" data="{{loading,error}}"/>
+  <block wx:if="{{!loading && !error}}"><view wx:if="{{meta}}" class="relations-count">{{meta.taskLabel}} · {{status==='done'?'已打卡':'未完成'}} {{meta.total}} 人<view>{{meta.date}} · {{meta.teamName}}</view></view>
+    <view wx:for="{{shown}}" wx:key="id" class="relation-row"><image class="relation-avatar" src="/images/ui/community-user.svg"/><view class="relation-main"><view class="relation-name">{{item.nickname}}{{item.isMe?'（我）':''}}</view><view class="relation-caption">{{item.isCaptain?'队长 · ':''}}{{meta.taskLabel}}{{item.done?'已打卡':'未完成'}}</view></view><button wx:if="{{status==='pending'}}" class="relation-follow" open-type="share">分享提醒</button><text wx:else class="member-task-done">已打卡</text></view>
+    <view wx:if="{{!shown.length}}" class="relations-empty"><image src="/images/ui/community-user.svg"/><view>{{query?'没有找到匹配的成员':!meta?'请从小队任务中打开名单':!meta.active?'当前不在任务打卡周期内':status==='pending'?'该任务的伙伴都已完成':'暂时没有伙伴完成该任务'}}</view></view>
+  </block>
+</view>

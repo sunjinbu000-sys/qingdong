@@ -752,7 +752,33 @@ test("team creation defaults to five invite-only members over seven days and ret
  p.capacity({detail:{value:"2"}});assert.equal(p.data.form.max,10);
  p.method({detail:{value:"1"}});assert.equal(p.data.form.method,"approval");
  p.tasks({detail:{value:["signin","weight"]}});assert.deepEqual(p.data.form.tasks,["signin","early","weight"]);
- p.toggleAdvanced();assert.equal(p.data.advanced,true);
+ const markup=fs.readFileSync(path.join(root,"pages/team-editor/index.wxml"),"utf8");assert.ok(!markup.includes('wx:if="{{advanced}}"'));assert.ok(!markup.includes("更多组队设置"));assert.equal((markup.match(/bindchange="method"/g)||[]).length,1);
+});
+test("received-like cards aggregate real counts by person and open their public profile for return likes",()=>{
+ const oldWx={...wx};try{
+  let target;wx.navigateTo=o=>target=o.url;const p=loadPage("forum-relations");p.onLoad({type:"likes"});p.setData({rows:[{id:"1",userId:"a",nickname:"小河",postId:"p1",postTitle:"第一篇"},{id:"2",userId:"a",nickname:"小河",postId:"p2",postTitle:"第二篇"},{id:"3",userId:"b",nickname:"小海",postId:"p3",postTitle:"第三篇"}],total:3});p.filterRows();
+  assert.equal(p.data.shown.length,2);assert.equal(p.data.shown[0].likeCount,2);assert.equal(p.data.total,3);
+  p.search({detail:{value:"第二篇"}});assert.equal(p.data.shown.length,1);assert.equal(p.data.shown[0].likeCount,2);
+  p.author({currentTarget:{dataset:{user:"a"}}});assert.equal(target,"/pages/public-profile/index?userId=a");
+ }finally{Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});
+test("team dashboard computes completed and pending partners per task and shares that task",()=>{
+ const oldWx={...wx};try{
+  let target;wx.navigateTo=o=>target=o.url;const p=loadPage("team-detail"),members=["a","b","c"].map((userId,i)=>({userId,nickname:userId,isMe:i===0,isCaptain:i===0}));p.key="team&1";
+  p.setData({days:7,taskLabels:[{id:"signin",label:"每日签到"},{id:"early",label:"早起打卡"},{id:"weight",label:"体重记录"}],team:{id:p.key,name:"同行",start:"2026-10-24",end:"2026-10-30",isMember:true,launched:true,members:["a","b","c"],memberProfiles:members,memberships:members.map(m=>({userId:m.userId,joined:"2026-10-24"})),tasks:["signin","early","weight"],checks:[{userId:"a",task:"early",date:"2026-10-24"},{userId:"b",task:"signin",date:"2026-10-24"}]}});p.renderDashboard("2026-10-24");
+  assert.deepEqual(p.data.todayTasks.find(t=>t.id==="early").doneMembers.map(m=>m.userId),["a"]);assert.equal(p.data.todayTasks.find(t=>t.id==="weight").pendingMembers.length,3);
+  p.taskMembers({currentTarget:{dataset:{task:"early",status:"pending"}}});assert.equal(target,"/pages/team-task-members/index?id=team%261&task=early&status=pending");
+  const share=p.onShareAppMessage({target:{dataset:{task:"early"}}});assert.ok(share.title.includes("早起打卡"));assert.equal(share.path,"/pages/team-detail/index?id=team%261&task=early");
+ }finally{Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});
+test("task member list searches the selected task and shares its reminder link",async()=>{
+ const previous=saved,service=require("../miniprogram-1/miniprogram/services/index"),original=service.getTeamTaskMembers;
+ try{
+  saved=undefined;await service.loginDemo();await service.saveProfile({nickname:"名单用户",city:"温州"});
+  service.getTeamTaskMembers=async(id,task,status)=>{assert.equal(id,"team1");assert.equal(task,"early");assert.equal(status,"pending");return{teamId:id,teamName:"早起同行",task,taskLabel:"早起打卡",status,date:"2026-10-24",active:true,total:2,rows:[{id:"a",nickname:"小河"},{id:"b",nickname:"小海"}]};};
+  const p=loadPage("team-task-members");p.onLoad({id:"team1",task:"early",status:"pending"});await p.refresh();assert.equal(p.data.meta.total,2);
+  p.search({detail:{value:"小河"}});assert.equal(p.data.shown.length,1);assert.equal(p.onShareAppMessage().path,"/pages/team-detail/index?id=team1&task=early");assert.ok(p.onShareAppMessage().title.includes("早起打卡"));
+ }finally{saved=previous;service.getTeamTaskMembers=original;}
 });
 test("team creation blocks missing early cutoff and scrolls to its visible time field",async()=>{
   const previous=saved,oldWx={...wx};try{
