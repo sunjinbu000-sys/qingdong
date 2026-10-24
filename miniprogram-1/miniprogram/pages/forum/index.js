@@ -5,6 +5,7 @@ page({
     tab: "recommended",
     mine: "mine",
     posts: [],
+    moreOpen: false, morePost: null,
     signedIn: false,
     personal: { nickname: "轻动新朋友", bio: "", following: 0, followers: 0, likes: 0 },
     region: null,
@@ -97,7 +98,37 @@ page({
   follow(e){return this.action(async()=>{if(!(await this.requireAccount()))return;await service.followForumUser(e.currentTarget.dataset.user);await this.refresh();});},
   like(e){return this.action(async()=>{if(!(await this.requireAccount()))return;await service.likeForumPost(e.currentTarget.dataset.id);await this.refresh();});},
   author(e){const p=this.data.posts.find(p=>p.id===e.currentTarget.dataset.id);if(p&&!p.anonymous)navigate("/pages/public-profile/index?userId="+encodeURIComponent(p.userId));},
-  more(e){const p=this.data.posts.find(p=>p.id===e.currentTarget.dataset.id);if(!p)return;wx.showActionSheet({itemList:p.mine?["编辑笔记","查看笔记"]:[p.favorited?"取消收藏":"收藏笔记","举报笔记"],success:r=>{if(p.mine){navigate(r.tapIndex===0?"/pages/forum-editor/index?id="+p.id:"/pages/forum-detail/index?id="+p.id);return;}this.action(async()=>{if(!(await this.requireAccount()))return;if(r.tapIndex===0){await service.favoriteForumPost(p.id);await this.refresh();}else{wx.showModal({title:"举报笔记",editable:true,placeholderText:"请填写举报原因",success:result=>{if(result.confirm)this.action(async()=>{await service.reportForumPost(p.id,result.content);wx.showToast({title:"举报已提交",icon:"success"});});}});}});}});},
+  more(e) {
+    const post=this.data.posts.find(p=>p.id===e.currentTarget.dataset.id);
+    if(!post)return;
+    this.setData({moreOpen:true,morePost:{id:post.id,mine:!!post.mine,shareable:post.status==='approved'}});
+  },
+  closeMore(){this.setData({moreOpen:false});},
+  onHide(){this.closeMore();},
+  stopMore(){},
+  menuNavigate(e) {
+    const post=this.data.morePost;
+    if(!post)return;
+    this.closeMore();
+    navigate('/pages/'+(e.currentTarget.dataset.action==='edit'?'forum-editor':'forum-detail')+'/index?id='+encodeURIComponent(post.id));
+  },
+  reportMore() {
+    const post=this.data.morePost;
+    if(!post||post.mine)return;
+    this.closeMore();
+    return this.action(async()=>{
+      if(!(await this.requireAccount()))return;
+      wx.showModal({title:'举报笔记',editable:true,placeholderText:'请填写举报原因',success:result=>{
+        if(result.confirm)this.action(async()=>{await service.reportForumPost(post.id,result.content);wx.showToast({title:'举报已提交',icon:'success'});});
+      }});
+    });
+  },
+  onShareAppMessage(e) {
+    const id=e&&e.target&&e.target.dataset&&e.target.dataset.id;
+    const post=id&&this.data.posts.find(p=>p.id===id&&p.status==='approved');
+    this.closeMore();
+    return post?{title:post.title||String(post.text||'轻友的生活分享').slice(0,42),path:'/pages/forum-detail/index?id='+encodeURIComponent(post.id)}:{title:'轻友论坛',path:'/pages/forum/index'};
+  },
   editBio(){if(!this.data.signedIn)return navigate("/pages/account/index");wx.showModal({title:"编辑个人简介",editable:true,content:this.data.personal.bio||"",placeholderText:"介绍一下自己（最多120字）",confirmText:"保存",success:r=>{if(r.confirm)this.action(async()=>{await service.saveForumBio(r.content||"");await this.refresh();wx.showToast({title:"简介已更新",icon:"success"});});}});},
   publish() {
     navigate(

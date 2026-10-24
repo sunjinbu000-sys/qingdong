@@ -27,3 +27,5 @@
 
 /* Feature canvas matches native navigation. */
 page{background:#EFF7F6;background-image:none}
+
+.forum-more-mask{position:fixed;inset:0;z-index:100;background:#213F4266;display:flex;align-items:flex-end}.forum-more-sheet{width:100%;max-width:100%;box-sizing:border-box;background:#fff;border-radius:32rpx 32rpx 0 0;padding:26rpx 26rpx calc(26rpx + env(safe-area-inset-bottom))}.forum-more-heading{color:#64797B;font-size:23rpx;text-align:center;margin-bottom:18rpx}.forum-more-sheet .forum-more-action,.forum-more-sheet .forum-more-cancel{box-sizing:border-box;width:100%;min-width:0;margin:0;display:flex;align-items:center;justify-content:center;gap:18rpx;padding:24rpx 16rpx;background:#fff;color:#293F44;font-size:28rpx;line-height:1.6;white-space:normal;border-radius:18rpx}.forum-more-sheet .forum-share-action{background:#DEF0EE;color:#267F83;font-weight:600}.forum-share-action image{width:38rpx;height:38rpx;flex-shrink:0}.forum-more-sheet .forum-more-cancel{background:#F1F5F5;color:#64797B;margin-top:16rpx}

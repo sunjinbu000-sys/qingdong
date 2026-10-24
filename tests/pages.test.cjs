@@ -226,6 +226,21 @@ function loadPage(name) {
   };
   return page;
 }
+test("forum more menu shares the selected public post through a native share button without changing favorites",()=>{
+  const p=loadPage("forum");
+  p.setData({posts:[{id:"post&1",title:"记录改变",status:"approved",favorited:true,images:["/images/food-photos/rice.jpg"]},{id:"draft",title:"私密草稿",status:"draft",mine:true,images:[]}]});
+  p.more({currentTarget:{dataset:{id:"post&1"}}});
+  assert.equal(p.data.moreOpen,true);assert.equal(p.data.morePost.id,"post&1");
+  const share=p.onShareAppMessage({from:"button",target:{dataset:{id:"post&1"}}});
+  assert.equal(share.path,"/pages/forum-detail/index?id=post%261");assert.equal(share.title,"记录改变");
+  assert.equal(p.data.posts[0].favorited,true);
+  p.closeMore();assert.equal(p.data.moreOpen,false);
+  p.more({currentTarget:{dataset:{id:"draft"}}});assert.equal(p.data.morePost.shareable,false);
+  assert.equal(p.onShareAppMessage({target:{dataset:{id:"draft"}}}).path,"/pages/forum/index");
+  const markup=fs.readFileSync(path.join(root,"pages/forum/index.wxml"),"utf8");
+  assert.match(markup,/open-type="share"/);
+  assert.ok(!fs.readFileSync(path.join(root,"pages/forum/index.js"),"utf8").includes("取消收藏"));
+});
 test("every registered page loads both signed out and signed in, with event handlers present", async () => {
   const app = JSON.parse(fs.readFileSync(path.join(root, "app.json"), "utf8"));
   const service = require("../miniprogram-1/miniprogram/services/index");
