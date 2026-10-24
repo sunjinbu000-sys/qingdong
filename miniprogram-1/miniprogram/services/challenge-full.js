@@ -989,8 +989,16 @@ function createChallengeFullDomain(c) {
           !!u &&
           (["admin", "hq"].includes(role) ||
             (role === "operator" && e.scope !== "all" && e.city === city(s)));
+      const actualCount=e.registrations.filter(r=>r.status==="registered").length;
+      const ownRegistration=e.registrations.find(r=>r.userId===u&&r.status==="registered");
+      const at=new Date(now()+8*3600000).toISOString().slice(0,16);
+      const claimed=!!u&&e.claimed.includes(u);
+      const phase=e.status!=="published"?"活动已终止":at<e.regStart?"报名未开始":at<=e.regEnd?"报名中":at<e.start?"报名已截止":at<=e.end?"活动进行中":"活动已结束";
+      const canEnroll=!!u&&e.status==="published"&&at>=e.regStart&&at<=e.regEnd&&actualCount<e.capacity&&!ownRegistration&&(e.scope==="all"||e.city===city(s));
       return {
         ...clone(e),
+        actualCount,remaining:Math.max(0,e.capacity-actualCount),ownRegistration:ownRegistration?clone(ownRegistration):null,ownClaimed:claimed,phase,canEnroll,
+        canClaim:e.status==="published"&&!!ownRegistration&&!claimed&&ownRegistration.verified.length===e.conditions.length&&ownRegistration.verified.every(Boolean),
         canManage: admin,
         registrations: admin
           ? clone(e.registrations)

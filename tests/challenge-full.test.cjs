@@ -269,7 +269,8 @@ test("native forms create a team, process applications and pass complete event c
   assert.equal(calls[0].name, "同行");
   assert.equal(navigated, "/pages/team-detail/index?id=new-team");
   const event = load("event-detail", {
-    getEvent: async () => ({ conditions: ["签到", "步行"] }),
+    getSnapshot: async () => ({signedIn:true,profile:{city:"温州"}}),
+    getEvent: async () => ({ conditions: ["签到", "步行"],start:"2026-10-21T09:00",end:"2026-10-21T11:00",regStart:"2026-10-20T09:00",regEnd:"2026-10-21T08:00" }),
     verifyEvent: async (...args) => calls.push(args),
   });
   event.key = "event-1";

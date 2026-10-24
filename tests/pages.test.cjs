@@ -850,3 +850,14 @@ test("event editor preserves a cover on picker cancellation and persists new cov
  wx.env={USER_DATA_PATH:"wxfile://usr"};let target="";wx.chooseMedia=o=>o.success({tempFiles:[{tempFilePath:"tmp/image.jpg",size:1024}]});wx.getFileSystemManager=()=>({copyFile:o=>{target=o.destPath;o.success();}});await p.chooseCover();assert.match(target,/wxfile:\/\/usr\/qingdong-event-/);assert.equal(p.data.form.coverImage,target);p.removeCover();assert.equal(p.data.form.coverImage,"");
  }finally{Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
 });
+
+
+test("event detail opens configured enrollment form and switches the fixed action to progress and reward claim",async()=>{
+ const previous=saved,oldWx={...wx};try{saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"活动伙伴",city:"温州"});
+ const first=(await service.getEventSquare({scope:"city"})).available[0];const p=loadPage("event-detail");p.onLoad({id:first.id});await p.refresh();assert.equal(p.data.cta,"立即报名");p.primary();assert.equal(p.data.registrationOpen,true);
+ const values=Object.fromEntries(p.data.event.fields.map(f=>[f.key,f.type==='tel'?'13800000000':f.type==='number'?'1':'活动伙伴']));await p.enroll({detail:{value:values}});assert.equal(p.data.registrationOpen,false);assert.ok(p.data.event.ownRegistration);assert.equal(p.data.cta,"已报名 · 查看进度");let selector="";wx.pageScrollTo=o=>selector=o.selector;p.primary();assert.equal(selector,"#event-progress");
+ await service.setDemoRole("hq");const reg=p.data.event.ownRegistration;
+ const date=(await service.getSnapshot()).date,previousDate=require("../miniprogram-1/miniprogram/utils/date").shiftDate(date,-1),stored=saved.full.events.find(e=>e.id===first.id);Object.assign(stored,{regStart:previousDate+"T00:00",regEnd:previousDate+"T23:59",start:date+"T00:00",end:date+"T23:59"});
+ await service.verifyEvent(first.id,reg.userId,p.data.event.conditions.map(()=>true));await p.refresh();assert.equal(p.data.cta,"领取全部奖励");await p.primary();assert.equal(p.data.cta,"奖励已领取");assert.equal(p.data.ctaDisabled,true);assert.equal(p.onShareAppMessage().path,"/pages/event-detail/index?id="+first.id);
+ }finally{saved=previous;Object.keys(wx).forEach(k=>delete wx[k]);Object.assign(wx,oldWx);}
+});
