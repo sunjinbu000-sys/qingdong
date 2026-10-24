@@ -394,6 +394,11 @@ function createOperationsDomain(c) {
       goal,
       bmi,
       exerciseCalories: Math.round(exerciseCalories),
+      exerciseMinutes: records.filter(r=>r.type==="exercise").reduce((n,r)=>n+(Number(r.minutes)||0),0),
+      hasUnestimatedExercise: records.some(r=>r.type==="exercise"&&r.exerciseKcal==null),
+      goalConfigured: Number(f.profileExtra.calorieGoal)>0,
+      recordDates: [...new Set(own.map(r=>r.date))],
+      weightScenes: records.filter(r=>r.type==="weight").map(r=>({id:r.id,kg:r.kg,note:r.note||"本次记录"})),
       budget: goal + Math.round(exerciseCalories),
       remaining: Math.round(goal + exerciseCalories - calories),
       nutrition: {

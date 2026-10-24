@@ -870,3 +870,12 @@ test("joined team dashboard computes real daily completion streaks and pending m
  p.renderDashboard("2026-10-24");assert.equal(p.data.dashboardMode,true);assert.equal(p.data.todayPercent,50);assert.equal(p.data.completeCount,1);assert.equal(p.data.pendingCount,1);assert.equal(p.data.members[0].streak,2);assert.equal(p.data.members[1].status,"部分完成");assert.ok(p.data.todayTasks.every(t=>t.done));p.chooseMemberFilter({currentTarget:{dataset:{filter:"pending"}}});assert.deepEqual(p.data.visibleMembers.map(m=>m.userId),["b"]);
  p.data.team.launched=false;p.renderDashboard("2026-10-24");assert.equal(p.data.phase,"等待开赛");assert.equal(p.data.todayActive,false);assert.equal(p.data.todayPercent,0);assert.equal(p.data.pendingCount,0);assert.equal(p.data.dayNumber,0);
 });
+
+
+test("nutrition dashboard synchronizes selected dates exercise and real weight context without future points",async()=>{
+ const previous=saved;try{saved=undefined;const service=require("../miniprogram-1/miniprogram/services/index");await service.loginDemo();await service.saveProfile({nickname:"日历伙伴",city:"温州"});
+ await service.saveRecord({type:"weight",date:"2026-01-01",kg:70,note:"晨起空腹"});await service.saveRecord({type:"weight",date:"2026-01-03",kg:69,note:"晚餐前"});await service.saveRecord({type:"exercise",date:"2026-01-03",name:"散步",minutes:45});await service.saveRecord({type:"meal",date:"2026-01-03",name:"午餐",slot:"lunch",kcal:500});
+ const p=loadPage("health-overview");p.onLoad({date:"2026-01-03"});await p.refresh();assert.equal(p.data.overview.exerciseMinutes,45);assert.equal(p.data.overview.hasUnestimatedExercise,true);assert.equal(p.data.overview.nutrition.calories,500);assert.equal(p.data.overview.weightScenes[0].note,"晚餐前");assert.equal(p.data.weightDelta,"-1.0 kg");assert.equal(p.data.miniLines.length,1);assert.equal(p.data.weekDays.filter(d=>d.selected).length,1);
+ p.setData({date:"2026-01-01"});await p.refresh();assert.equal(p.data.overview.exerciseMinutes,0);assert.equal(p.data.overview.weightScenes[0].kg,70);assert.equal(p.data.miniPoints.length,1);assert.ok(p.data.curve.every(d=>d.date<="2026-01-01"));assert.equal(p.data.weightDelta,"—");
+ }finally{saved=previous;}
+});
